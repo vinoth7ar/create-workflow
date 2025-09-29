@@ -33,19 +33,19 @@ const StateNode = ({ data, selected, id }: { data: NodeData; selected: boolean; 
 
   return (
     <div className="group relative">
-      <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center shadow-md transition-all ${
-        selected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-green-400 bg-green-50'
+      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-sm transition-all ${
+        selected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-300 shadow-md' : 'border-gray-400 bg-gray-50'
       }`}>
         <Handle type="target" position={Position.Left} className="w-2 h-2" />
         <div className="text-xs font-medium text-gray-800 text-center px-1">{data.label}</div>
         <Handle type="source" position={Position.Right} className="w-2 h-2" />
       </div>
       <button 
-        className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold hover:bg-blue-600 shadow-lg border border-white"
+        className="absolute -right-6 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-500 shadow-md"
         onClick={handlePlusClick}
-        title="Add Event Node"
+        title="Add Transition Block"
       >
-        +
+        <span className="text-sm font-bold">+</span>
       </button>
     </div>
   );
@@ -61,22 +61,22 @@ const EventNode = ({ data, selected, id }: { data: NodeData; selected: boolean; 
 
   return (
     <div className="group relative">
-      <div className={`min-w-[80px] px-2 py-4 bg-white border-2 rounded-lg shadow-md transition-all ${
-        selected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-300'
+      <div className={`min-w-[90px] max-w-[120px] px-3 py-2 bg-white border-2 rounded shadow-sm transition-all ${
+        selected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-300 shadow-md' : 'border-gray-300'
       }`}>
         <Handle type="target" position={Position.Left} className="w-2 h-2" />
-        <div className="font-medium text-gray-800 text-sm">{data.label}</div>
+        <div className="text-xs font-medium text-gray-800">{data.label}</div>
         {data.description && (
-          <div className="text-xs text-gray-500 mt-1 truncate">{data.description}</div>
+          <div className="text-xs text-gray-500 mt-1">{data.description}</div>
         )}
         <Handle type="source" position={Position.Right} className="w-2 h-2" />
       </div>
       <button 
-        className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm font-bold hover:bg-green-600 shadow-lg border border-white"
+        className="absolute -right-6 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-500 shadow-md"
         onClick={handlePlusClick}
-        title="Add State Node"
+        title="Add State"
       >
-        +
+        <span className="text-sm font-bold">+</span>
       </button>
     </div>
   );
@@ -101,36 +101,61 @@ export const WorkflowEditor = () => {
   const [externalTrigger, setExternalTrigger] = useState(false);
 
   // ==================== HELPER FUNCTIONS ====================
+  const generateUniqueId = useCallback((nodeType: string, existingNodes: Node[]) => {
+    const baseName = nodeType === 'state' ? 'Stage' : 'Action Block';
+    const existingLabels = existingNodes.map(n => n.data.label?.toString() || '');
+    
+    // Check if base name exists
+    if (!existingLabels.includes(baseName)) {
+      return { id: `${nodeType}-${Date.now()}`, label: baseName };
+    }
+    
+    // Find next available number
+    let counter = 1;
+    while (existingLabels.includes(`${baseName}${counter}`)) {
+      counter++;
+    }
+    
+    return { id: `${nodeType}-${Date.now()}`, label: `${baseName}${counter}` };
+  }, []);
+
   const addConnectedNode = useCallback((sourceId: string, nodeType: string) => {
     const sourceNode = nodes.find(n => n.id === sourceId);
     if (!sourceNode) return;
 
-    const newPosition = {
-      x: sourceNode.position.x + (nodeType === 'state' ? 200 : 250),
+    const { id, label } = generateUniqueId(nodeType, nodes);
+    
+    const newPosition = autoPositioning ? {
+      x: sourceNode.position.x + 250,
       y: sourceNode.position.y,
+    } : {
+      x: Math.random() * 400 + 200,
+      y: Math.random() * 300 + 100,
     };
 
     const newNode: Node = {
-      id: `${nodeType}-${Date.now()}`,
+      id,
       type: nodeType,
       position: newPosition,
       data: { 
-        label: nodeType === 'state' ? 'New State' : 'New Block',
+        label,
         description: nodeType === 'event' ? 'Add business event or subworkflow using the action panel.' : ''
       },
     };
 
     setNodes((nds) => nds.concat(newNode));
     
-    const newEdge = {
-      id: `edge-${sourceId}-${newNode.id}`,
-      source: sourceId,
-      target: newNode.id,
-      style: { strokeWidth: 2, stroke: '#94a3b8' },
-      markerEnd: { type: 'arrowclosed', color: '#94a3b8' }
-    };
-    setEdges((eds) => eds.concat(newEdge));
-  }, [nodes, setNodes, setEdges]);
+    if (autoPositioning) {
+      const newEdge = {
+        id: `edge-${sourceId}-${newNode.id}`,
+        source: sourceId,
+        target: newNode.id,
+        style: { strokeWidth: 2, stroke: '#94a3b8' },
+        markerEnd: { type: 'arrowclosed', color: '#94a3b8' }
+      };
+      setEdges((eds) => eds.concat(newEdge));
+    }
+  }, [nodes, setNodes, setEdges, autoPositioning, generateUniqueId]);
 
   const autoArrangeNodes = useCallback(() => {
     if (!autoPositioning || nodes.length === 0) return;
@@ -219,7 +244,7 @@ export const WorkflowEditor = () => {
       }
       
       const levelWidth = levels[levelIndex]?.length || 1;
-      const nodeSpacing = 300; // Horizontal spacing between levels
+      const nodeSpacing = 250; // Horizontal spacing between levels
       const verticalSpacing = 80; // Vertical spacing between nodes in same level
       
       // Intelligent positioning based on node type and count
@@ -261,25 +286,30 @@ export const WorkflowEditor = () => {
     const type = event.dataTransfer.getData('application/reactflow');
     if (!type) return;
 
+    const { id, label } = generateUniqueId(type, nodes);
+
     let position;
-    if (nodes.length === 0) {
-      position = { x: 200, y: 100 };
+    if (nodes.length === 0 || !autoPositioning) {
+      position = autoPositioning ? { x: 150, y: 200 } : { 
+        x: Math.random() * 400 + 200, 
+        y: Math.random() * 300 + 100 
+      };
     } else {
       const lastNode = nodes.reduce((rightmost, node) => 
         node.position.x > rightmost.position.x ? node : rightmost
       );
       position = {
-        x: lastNode.position.x + (type === 'state' ? 200 : 250),
+        x: lastNode.position.x + 250,
         y: lastNode.position.y,
       };
     }
 
     const newNode: Node = {
-      id: `${type}-${Date.now()}`,
+      id,
       type,
       position,
       data: { 
-        label: type === 'state' ? 'Start' : 'Action Block',
+        label,
         description: type === 'event' ? 'Add business event or subworkflow using the action panel.' : ''
       },
     };
@@ -287,7 +317,7 @@ export const WorkflowEditor = () => {
     setNodes((nds) => {
       const updatedNodes = nds.concat(newNode);
       
-      if (nodes.length > 0) {
+      if (autoPositioning && nodes.length > 0) {
         const lastNode = nodes.reduce((rightmost, node) => 
           node.position.x > rightmost.position.x ? node : rightmost
         );
@@ -304,11 +334,17 @@ export const WorkflowEditor = () => {
       
       return updatedNodes;
     });
-  }, [setNodes, setEdges, nodes]);
+  }, [setNodes, setEdges, nodes, autoPositioning, generateUniqueId]);
 
   // ==================== NODE/EDGE INTERACTIONS ====================
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
+    
+    // Sync form values with selected node's data
+    setBusinessEvent(String(node.data.label) || 'Select business events and/or subworkflows');
+    setCondition(String(node.data.description || '') || 'Select condition');
+    setAutomaticTrigger(false);
+    setExternalTrigger(false);
     
     const connectedEdgeIds = edges
       .filter(edge => edge.source === node.id || edge.target === node.id)
@@ -342,25 +378,46 @@ export const WorkflowEditor = () => {
 
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
-    console.log('Save Draft clicked');
-    console.log('Workflow Data:', {
+    const workflowData = {
       name: workflowName,
       description: workflowDescription,
-      nodes: nodes,
-      edges: edges,
+      nodes: nodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data
+      })),
+      edges: edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target
+      })),
       autoPositioning
-    });
+    };
+    console.log('=== SAVE DRAFT ===');
+    console.log(JSON.stringify(workflowData, null, 2));
   };
 
   const handlePublishDraft = () => {
-    console.log('Publish Draft clicked');
-    console.log('Publishing Workflow:', {
+    const workflowData = {
       name: workflowName,
       description: workflowDescription,
-      nodes: nodes,
-      edges: edges,
+      nodes: nodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data
+      })),
+      edges: edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target
+      })),
       status: 'published'
-    });
+    };
+    console.log('=== PUBLISH DRAFT ===');
+    console.log(JSON.stringify(workflowData, null, 2));
+    alert('Workflow published successfully! Check console for output.');
   };
 
   // ==================== EFFECTS & EVENT LISTENERS ====================
@@ -502,14 +559,15 @@ export const WorkflowEditor = () => {
             nodes={nodes.map(node => ({
               ...node,
               style: (highlightedElements.nodeId === node.id || highlightedElements.nodeIds?.includes(node.id))
-                ? { ...node.style, boxShadow: '0 0 0 2px #3b82f6' }
-                : node.style
+                ? { ...node.style, boxShadow: '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)', transition: 'all 0.3s ease' }
+                : { ...node.style, transition: 'all 0.3s ease' }
             }))}
             edges={edges.map(edge => ({
               ...edge,
               style: highlightedElements.edgeIds.includes(edge.id)
-                ? { ...edge.style, strokeWidth: 3, stroke: '#3b82f6' }
-                : edge.style
+                ? { ...edge.style, strokeWidth: 3, stroke: '#3b82f6', opacity: 1, transition: 'all 0.3s ease' }
+                : { ...edge.style, transition: 'all 0.3s ease' },
+              animated: highlightedElements.edgeIds.includes(edge.id)
             }))}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -553,8 +611,15 @@ export const WorkflowEditor = () => {
               </div>
             </div>
             <button 
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-400 hover:text-white"
+              onClick={() => {
+                if (selectedNode) {
+                  setNodes((nds) => nds.filter(n => n.id !== selectedNode.id));
+                  setEdges((eds) => eds.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id));
+                  setSelectedNode(null);
+                }
+              }}
+              className="text-gray-400 hover:text-red-500 transition-colors"
+              title="Delete Node"
             >
               🗑
             </button>
@@ -567,7 +632,17 @@ export const WorkflowEditor = () => {
               </label>
               <select 
                 value={businessEvent}
-                onChange={(e) => setBusinessEvent(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setBusinessEvent(newValue);
+                  if (selectedNode) {
+                    setNodes((nds) => nds.map(n => 
+                      n.id === selectedNode.id 
+                        ? { ...n, data: { ...n.data, label: newValue } }
+                        : n
+                    ));
+                  }
+                }}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white"
               >
                 <option>Select business events and/or subworkflows</option>
@@ -581,7 +656,17 @@ export const WorkflowEditor = () => {
               <label className="text-sm font-medium text-white mb-3 block">Condition</label>
               <select 
                 value={condition}
-                onChange={(e) => setCondition(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setCondition(newValue);
+                  if (selectedNode) {
+                    setNodes((nds) => nds.map(n => 
+                      n.id === selectedNode.id 
+                        ? { ...n, data: { ...n.data, description: newValue } }
+                        : n
+                    ));
+                  }
+                }}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white"
               >
                 <option>Select condition</option>
@@ -619,8 +704,8 @@ export const WorkflowEditor = () => {
           <div className="p-6 border-t border-gray-600">
             <button
               onClick={() => {
-                console.log('Node updated:', {
-                  nodeId: selectedNode.id,
+                console.log('Node saved:', {
+                  nodeId: selectedNode?.id,
                   businessEvent,
                   condition,
                   automaticTrigger,
@@ -630,7 +715,7 @@ export const WorkflowEditor = () => {
               }}
               className="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              Next
+              Done
             </button>
           </div>
         </div>
