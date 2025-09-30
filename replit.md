@@ -11,7 +11,16 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - **Visualization**: React Flow (@xyflow/react)
 - **Styling**: Tailwind CSS
 
-## Recent Changes (September 29, 2025)
+## Recent Changes (September 30, 2025)
+- ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
+- ✅ Removed unnecessary Editor.tsx wrapper page for cleaner architecture
+- ✅ Implemented real-time node editor updates without "Next" button
+- ✅ Added immediate reflection of dropdown changes on canvas
+- ✅ Fixed plus icon positioning (8px from nodes) with gray colors
+- ✅ Implemented consistent node sizing (40x40px for both types)
+- ✅ Fixed auto-positioning logic (250px spacing when ON, random when OFF)
+
+## Previous Changes (September 29, 2025)
 - ✅ Successfully configured Vite for Replit environment
 - ✅ Set proper host configuration (`0.0.0.0:5000`)
 - ✅ Added `allowedHosts: true` to bypass host header verification for Replit proxy
@@ -21,17 +30,19 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 
 ## Project Architecture
 ### Frontend Structure
-- **Pages**: Index (landing), View, Editor, NotFound
-- **Components**: Workflow management UI with drag-and-drop capabilities
-- **Nodes**: EventNode, StatusNode for workflow visualization
+- **Pages**: Index (landing), View, NotFound
+- **Components**: 
+  - WorkflowEditor.tsx - All create/edit functionality consolidated here
+  - WorkflowManager.tsx - Workflow visualization and viewing
+  - Custom nodes (EventNode, StatusNode) for workflow visualization
 - **Utils**: Layout utilities and workflow data management
 - **Hooks**: Mobile detection and HTTP data management
 
 ### Key Files
 - `vite.config.ts`: Configured for Replit with proxy bypass
-- `src/App.tsx`: Main routing configuration
-- `src/pages/`: Application pages
-- `src/components/`: Reusable UI components and workflow builders
+- `src/App.tsx`: Main routing configuration (directly imports WorkflowEditor)
+- `src/components/WorkflowEditor.tsx`: Single source of truth for all workflow creation and editing
+- `src/pages/`: Application pages (Index, View, NotFound)
 
 ## Development Workflow
 - **Start Development**: Workflow "Start application" runs `npm run dev`
