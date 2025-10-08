@@ -1,14 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ViewPage from "./pages/View";
-import { WorkflowEditor } from "./components/WorkflowEditor";
+import { CreateWorkflow } from "./components/workflow/create/CreateWorkflow";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
   <Routes>
     <Route path="/" element={<Index />} />
     <Route path="/view" element={<ViewPage />} />
-    <Route path="/editor" element={<WorkflowEditor />} />
+    <Route path="/editor" element={<CreateWorkflow />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
