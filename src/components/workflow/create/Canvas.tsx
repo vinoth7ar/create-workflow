@@ -1,4 +1,4 @@
-import { ReactFlow, Background, Controls, BackgroundVariant, ReactFlowProvider, Node, Edge, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes } from '@xyflow/react';
+import { ReactFlow, Background, Controls, BackgroundVariant, ReactFlowProvider, Node, Edge, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes, Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 interface CanvasProps {
@@ -32,6 +32,22 @@ export const Canvas = ({
   onDrop,
   onDragOver
 }: CanvasProps) => {
+  const isValidConnection = (connection: Connection) => {
+    const sourceNode = nodes.find(n => n.id === connection.source);
+    const targetNode = nodes.find(n => n.id === connection.target);
+    
+    if (!sourceNode || !targetNode) return false;
+    
+    const validPairs = [
+      { source: 'eventNode', target: 'stateNode' },
+      { source: 'stateNode', target: 'eventNode' }
+    ];
+    
+    return validPairs.some(
+      pair => sourceNode.type === pair.source && targetNode.type === pair.target
+    );
+  };
+
   return (
     <div className="flex-1 relative">
       <ReactFlowProvider>
@@ -59,6 +75,7 @@ export const Canvas = ({
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
           nodesDraggable={!autoPositioning}
+          isValidConnection={isValidConnection}
           fitView
           snapToGrid
           snapGrid={[15, 15]}
