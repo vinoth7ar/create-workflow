@@ -395,6 +395,7 @@ export const CreateWorkflow = () => {
         edges={edges}
         highlightedElements={highlightedElements}
         nodeTypes={nodeTypes}
+        autoPositioning={autoPositioning}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

@@ -6,6 +6,7 @@ interface CanvasProps {
   edges: Edge[];
   highlightedElements: { nodeId?: string; nodeIds?: string[]; edgeIds: string[] };
   nodeTypes: NodeTypes;
+  autoPositioning: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -21,6 +22,7 @@ export const Canvas = ({
   edges,
   highlightedElements,
   nodeTypes,
+  autoPositioning,
   onNodesChange,
   onEdgesChange,
   onConnect,
@@ -56,7 +58,7 @@ export const Canvas = ({
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
-          nodesDraggable={false}
+          nodesDraggable={!autoPositioning}
           fitView
           snapToGrid
           snapGrid={[15, 15]}
