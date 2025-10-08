@@ -21,6 +21,19 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - Extracted node components to `nodes/` folder (StateNode, EventNode)
 - ✅ Fixed manual node dragging when auto-positioning is disabled
 - ✅ Maintained all existing functionality: real-time updates, highlighting, auto-positioning, save/publish
+- ✅ **Dynamic Sidebar Implementation** (based on Figma specs):
+  - NodeEditorSidebar now renders different forms based on node type:
+    - Transition Block (event): Business Events dropdown (hierarchical), Condition dropdown (All Of/One Of/None), Trigger checkboxes, Entity selectors
+    - State Node (state): Simple State Name text input
+- ✅ **Connection Validation**:
+  - Implemented isValidConnection logic to only allow valid connections (Transition Block ↔ State)
+  - Prevents invalid node pairings
+- ✅ **Dynamic Visual Feedback**:
+  - Connection handles are gray by default
+  - Handles turn green only for valid connection targets during drag
+  - Invalid targets remain gray
+  - Green connection line for valid connections
+  - Connection state tracking via onConnectStart/onConnectEnd handlers
 
 ## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
