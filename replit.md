@@ -11,7 +11,18 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - **Visualization**: React Flow (@xyflow/react)
 - **Styling**: Tailwind CSS
 
-## Recent Changes (September 30, 2025)
+## Recent Changes (October 8, 2025)
+- ✅ **Major Refactoring**: Restructured workflow editor into modular architecture following CreateWorkflow pattern
+- ✅ Separated concerns into focused components:
+  - `CreateWorkflow.tsx` - Main orchestrating component
+  - `Sidebar.tsx` - Workflow metadata & component palette
+  - `Canvas.tsx` - React Flow visualization
+  - `NodeEditorSidebar.tsx` - Node property editor
+  - Extracted node components to `nodes/` folder (StateNode, EventNode)
+- ✅ Fixed manual node dragging when auto-positioning is disabled
+- ✅ Maintained all existing functionality: real-time updates, highlighting, auto-positioning, save/publish
+
+## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
 - ✅ Removed unnecessary Editor.tsx wrapper page for cleaner architecture
 - ✅ Implemented real-time node editor updates without "Next" button
@@ -31,17 +42,21 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 ## Project Architecture
 ### Frontend Structure
 - **Pages**: Index (landing), View, NotFound
-- **Components**: 
-  - WorkflowEditor.tsx - All create/edit functionality consolidated here
-  - WorkflowManager.tsx - Workflow visualization and viewing
-  - Custom nodes (EventNode, StatusNode) for workflow visualization
+- **Workflow Components** (Modular Structure):
+  - `src/components/workflow/create/`
+    - `CreateWorkflow.tsx` - Main orchestrating component managing all state
+    - `Sidebar.tsx` - Workflow metadata form & component palette
+    - `Canvas.tsx` - React Flow canvas with highlighting & interactions
+    - `NodeEditorSidebar.tsx` - Node editing panel with real-time updates
+    - `nodes/` - Custom node components (StateNode, EventNode)
+  - `WorkflowManager.tsx` - Workflow visualization and viewing
 - **Utils**: Layout utilities and workflow data management
 - **Hooks**: Mobile detection and HTTP data management
 
 ### Key Files
 - `vite.config.ts`: Configured for Replit with proxy bypass
-- `src/App.tsx`: Main routing configuration (directly imports WorkflowEditor)
-- `src/components/WorkflowEditor.tsx`: Single source of truth for all workflow creation and editing
+- `src/App.tsx`: Main routing configuration (imports CreateWorkflow)
+- `src/components/workflow/create/CreateWorkflow.tsx`: Main workflow creation component
 - `src/pages/`: Application pages (Index, View, NotFound)
 
 ## Development Workflow
