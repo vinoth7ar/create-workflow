@@ -3,6 +3,9 @@ import { Handle, Position } from '@xyflow/react';
 interface NodeData {
   label: string;
   description?: string;
+  isConnecting?: boolean;
+  connectionNodeId?: string | null;
+  connectionSourceType?: string | null;
 }
 
 interface StateNodeProps {
@@ -19,6 +22,19 @@ export const StateNode = ({ data, selected, id }: StateNodeProps) => {
     }));
   };
 
+  const isValidTarget = data.isConnecting && 
+    data.connectionNodeId !== id && 
+    data.connectionSourceType === 'event';
+  
+  const isValidSource = data.isConnecting && 
+    data.connectionNodeId === id;
+
+  const handleClassName = data.isConnecting
+    ? isValidTarget || isValidSource
+      ? "w-3 h-3 !bg-green-500 border-2 border-white hover:!bg-green-600 transition-colors"
+      : "w-3 h-3 !bg-gray-400 border-2 border-white transition-colors cursor-not-allowed"
+    : "w-3 h-3 !bg-gray-400 border-2 border-white hover:!bg-green-500 transition-colors";
+
   return (
     <div className="group relative">
       <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-sm transition-all ${
@@ -27,13 +43,13 @@ export const StateNode = ({ data, selected, id }: StateNodeProps) => {
         <Handle 
           type="target" 
           position={Position.Left} 
-          className="w-3 h-3 !bg-green-500 border-2 border-white hover:!bg-green-600 transition-colors" 
+          className={handleClassName}
         />
         <div className="text-xs font-medium text-gray-800 text-center px-1">{data.label}</div>
         <Handle 
           type="source" 
           position={Position.Right} 
-          className="w-3 h-3 !bg-green-500 border-2 border-white hover:!bg-green-600 transition-colors" 
+          className={handleClassName}
         />
       </div>
       <button 

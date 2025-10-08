@@ -3,6 +3,9 @@ import { Handle, Position } from '@xyflow/react';
 interface NodeData {
   label: string;
   description?: string;
+  isConnecting?: boolean;
+  connectionNodeId?: string | null;
+  connectionSourceType?: string | null;
 }
 
 interface EventNodeProps {
@@ -19,6 +22,19 @@ export const EventNode = ({ data, selected, id }: EventNodeProps) => {
     }));
   };
 
+  const isValidTarget = data.isConnecting && 
+    data.connectionNodeId !== id && 
+    data.connectionSourceType === 'state';
+  
+  const isValidSource = data.isConnecting && 
+    data.connectionNodeId === id;
+
+  const handleClassName = data.isConnecting
+    ? isValidTarget || isValidSource
+      ? "w-3 h-3 !bg-green-500 border-2 border-white hover:!bg-green-600 transition-colors"
+      : "w-3 h-3 !bg-gray-400 border-2 border-white transition-colors cursor-not-allowed"
+    : "w-3 h-3 !bg-gray-400 border-2 border-white hover:!bg-green-500 transition-colors";
+
   return (
     <div className="group relative">
       <div className={`min-w-[90px] max-w-[120px] px-3 py-2 bg-white border-2 rounded shadow-sm transition-all ${
@@ -27,7 +43,7 @@ export const EventNode = ({ data, selected, id }: EventNodeProps) => {
         <Handle 
           type="target" 
           position={Position.Left} 
-          className="w-3 h-3 !bg-green-500 border-2 border-white hover:!bg-green-600 transition-colors" 
+          className={handleClassName}
         />
         <div className="text-xs font-medium text-gray-800">{data.label}</div>
         {data.description && (
@@ -36,7 +52,7 @@ export const EventNode = ({ data, selected, id }: EventNodeProps) => {
         <Handle 
           type="source" 
           position={Position.Right} 
-          className="w-3 h-3 !bg-green-500 border-2 border-white hover:!bg-green-600 transition-colors" 
+          className={handleClassName}
         />
       </div>
       <button 

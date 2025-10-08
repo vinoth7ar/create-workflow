@@ -16,6 +16,9 @@ export const CreateWorkflow = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  
+  // Connection state for dynamic handle styling
+  const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
 
   // Form state for selected node
   const [businessEvent, setBusinessEvent] = useState('Select business events and/or subworkflows');
@@ -176,6 +179,20 @@ export const CreateWorkflow = () => {
     event: EventNode,
   }), []);
 
+  // Enhance nodes with connection state for dynamic handle styling
+  const nodesWithConnectionState = useMemo(() => 
+    nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        isConnecting: connectionNodeId !== null,
+        connectionNodeId,
+        connectionSourceType: connectionNodeId ? nodes.find(n => n.id === connectionNodeId)?.type : null
+      }
+    })),
+    [nodes, connectionNodeId]
+  );
+
   // ==================== DRAG AND DROP ====================
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
@@ -279,7 +296,16 @@ export const CreateWorkflow = () => {
       style: { strokeWidth: 2, stroke: '#94a3b8' },
       markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' }
     }, eds));
+    setConnectionNodeId(null);
   }, [setEdges]);
+
+  const onConnectStart = useCallback((_: any, { nodeId }: { nodeId: string | null }) => {
+    setConnectionNodeId(nodeId);
+  }, []);
+
+  const onConnectEnd = useCallback(() => {
+    setConnectionNodeId(null);
+  }, []);
 
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
@@ -391,7 +417,7 @@ export const CreateWorkflow = () => {
       />
 
       <Canvas
-        nodes={nodes}
+        nodes={nodesWithConnectionState}
         edges={edges}
         highlightedElements={highlightedElements}
         nodeTypes={nodeTypes}
@@ -399,6 +425,8 @@ export const CreateWorkflow = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         onPaneClick={handleCanvasClick}

@@ -29,8 +29,8 @@ export const NodeEditorSidebar = ({
 }: NodeEditorSidebarProps) => {
   if (!selectedNode) return null;
 
-  const isTransitionBlock = selectedNode.type === 'eventNode';
-  const isStateNode = selectedNode.type === 'stateNode';
+  const isTransitionBlock = selectedNode.type === 'event';
+  const isStateNode = selectedNode.type === 'state';
 
   return (
     <div className="w-80 bg-gray-800 text-white flex flex-col shadow-2xl">

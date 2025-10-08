@@ -10,6 +10,8 @@ interface CanvasProps {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
+  onConnectStart?: (event: any, params: { nodeId: string | null }) => void;
+  onConnectEnd?: (event: any) => void;
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
   onEdgeClick: (event: React.MouseEvent, edge: Edge) => void;
   onPaneClick: () => void;
@@ -26,6 +28,8 @@ export const Canvas = ({
   onNodesChange,
   onEdgesChange,
   onConnect,
+  onConnectStart,
+  onConnectEnd,
   onNodeClick,
   onEdgeClick,
   onPaneClick,
@@ -39,8 +43,8 @@ export const Canvas = ({
     if (!sourceNode || !targetNode) return false;
     
     const validPairs = [
-      { source: 'eventNode', target: 'stateNode' },
-      { source: 'stateNode', target: 'eventNode' }
+      { source: 'event', target: 'state' },
+      { source: 'state', target: 'event' }
     ];
     
     return validPairs.some(
@@ -68,6 +72,8 @@ export const Canvas = ({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
           onNodeClick={onNodeClick}
           onEdgeClick={onEdgeClick}
           onPaneClick={onPaneClick}
