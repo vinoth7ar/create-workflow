@@ -76,6 +76,7 @@ export const Canvas = ({
           nodeTypes={nodeTypes}
           nodesDraggable={!autoPositioning}
           isValidConnection={isValidConnection}
+          connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2 }}
           fitView
           snapToGrid
           snapGrid={[15, 15]}
