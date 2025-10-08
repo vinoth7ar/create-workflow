@@ -20,11 +20,36 @@ export const CreateWorkflow = () => {
   // Connection state for dynamic handle styling
   const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
 
-  // Form state for selected node
-  const [businessEvent, setBusinessEvent] = useState('Select business events and/or subworkflows');
-  const [condition, setCondition] = useState('Select condition');
-  const [automaticTrigger, setAutomaticTrigger] = useState(false);
-  const [externalTrigger, setExternalTrigger] = useState(false);
+  // Get current node data with defaults - derive from nodes array to stay in sync
+  const currentNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
+  const currentNodeData = currentNode ? {
+    businessEvent: (currentNode.data.businessEvent as string) || '',
+    condition: (currentNode.data.condition as string) || '',
+    automaticTrigger: (currentNode.data.automaticTrigger as boolean) || false,
+    externalTrigger: (currentNode.data.externalTrigger as boolean) || false,
+    focalEntity: (currentNode.data.focalEntity as string) || '',
+    createdEntities: (currentNode.data.createdEntities as string[]) || [],
+    modifiedEntities: (currentNode.data.modifiedEntities as string[]) || [],
+  } : {
+    businessEvent: '',
+    condition: '',
+    automaticTrigger: false,
+    externalTrigger: false,
+    focalEntity: '',
+    createdEntities: [] as string[],
+    modifiedEntities: [] as string[],
+  };
+
+  // Update node data helper
+  const updateNodeData = useCallback((nodeId: string, updates: Record<string, any>) => {
+    setNodes((nds) => 
+      nds.map((node) => 
+        node.id === nodeId
+          ? { ...node, data: { ...node.data, ...updates } }
+          : node
+      )
+    );
+  }, [setNodes]);
 
   // ==================== HELPER FUNCTIONS ====================
   const generateUniqueId = useCallback((nodeType: string, existingNodes: Node[]) => {
@@ -264,11 +289,6 @@ export const CreateWorkflow = () => {
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     
-    setBusinessEvent(String(node.data.label) || 'Select business events and/or subworkflows');
-    setCondition(String(node.data.description || '') || 'Select condition');
-    setAutomaticTrigger(false);
-    setExternalTrigger(false);
-    
     const connectedEdgeIds = edges
       .filter(edge => edge.source === node.id || edge.target === node.id)
       .map(edge => edge.id);
@@ -359,27 +379,59 @@ export const CreateWorkflow = () => {
     }
   };
 
-  const handleBusinessEventChange = (value: string) => {
-    setBusinessEvent(value);
+  const handleBusinessEventChange = useCallback((value: string, label?: string) => {
     if (selectedNode) {
-      setNodes((nds) => nds.map(n => 
-        n.id === selectedNode.id 
-          ? { ...n, data: { ...n.data, label: value } }
-          : n
-      ));
+      updateNodeData(selectedNode.id, { 
+        businessEvent: value, 
+        label: label || value // Use human-readable label for display
+      });
     }
-  };
+  }, [selectedNode, updateNodeData]);
 
-  const handleConditionChange = (value: string) => {
-    setCondition(value);
+  const handleConditionChange = useCallback((value: string, label?: string) => {
     if (selectedNode) {
-      setNodes((nds) => nds.map(n => 
-        n.id === selectedNode.id 
-          ? { ...n, data: { ...n.data, description: value } }
-          : n
-      ));
+      updateNodeData(selectedNode.id, { 
+        condition: value, 
+        description: label || value // Use human-readable label
+      });
     }
-  };
+  }, [selectedNode, updateNodeData]);
+
+  const handleAutomaticTriggerChange = useCallback((checked: boolean) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { automaticTrigger: checked });
+    }
+  }, [selectedNode, updateNodeData]);
+
+  const handleExternalTriggerChange = useCallback((checked: boolean) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { externalTrigger: checked });
+    }
+  }, [selectedNode, updateNodeData]);
+
+  const handleFocalEntityChange = useCallback((value: string, label?: string) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { focalEntity: value });
+    }
+  }, [selectedNode, updateNodeData]);
+
+  const handleCreatedEntitiesChange = useCallback((values: string[]) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { createdEntities: values });
+    }
+  }, [selectedNode, updateNodeData]);
+
+  const handleModifiedEntitiesChange = useCallback((values: string[]) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { modifiedEntities: values });
+    }
+  }, [selectedNode, updateNodeData]);
+
+  const handleCreateNew = useCallback(() => {
+    // Placeholder for creating new entities/events
+    console.log('Create new requested');
+    // TODO: Implement entity/event creation dialog
+  }, []);
 
   // ==================== EFFECTS & EVENT LISTENERS ====================
   useEffect(() => {
@@ -436,14 +488,21 @@ export const CreateWorkflow = () => {
 
       <NodeEditorSidebar
         selectedNode={selectedNode}
-        businessEvent={businessEvent}
-        condition={condition}
-        automaticTrigger={automaticTrigger}
-        externalTrigger={externalTrigger}
+        businessEvent={currentNodeData.businessEvent}
+        condition={currentNodeData.condition}
+        automaticTrigger={currentNodeData.automaticTrigger}
+        externalTrigger={currentNodeData.externalTrigger}
+        focalEntity={currentNodeData.focalEntity}
+        createdEntities={currentNodeData.createdEntities}
+        modifiedEntities={currentNodeData.modifiedEntities}
         onBusinessEventChange={handleBusinessEventChange}
         onConditionChange={handleConditionChange}
-        onAutomaticTriggerChange={setAutomaticTrigger}
-        onExternalTriggerChange={setExternalTrigger}
+        onAutomaticTriggerChange={handleAutomaticTriggerChange}
+        onExternalTriggerChange={handleExternalTriggerChange}
+        onFocalEntityChange={handleFocalEntityChange}
+        onCreatedEntitiesChange={handleCreatedEntitiesChange}
+        onModifiedEntitiesChange={handleModifiedEntitiesChange}
+        onCreateNew={handleCreateNew}
         onDelete={handleNodeDelete}
         onDone={() => setSelectedNode(null)}
       />

@@ -1,4 +1,104 @@
+import { useState } from 'react';
 import { Node } from '@xyflow/react';
+import { HierarchicalSelect, HierarchicalOption } from '@/components/ui/hierarchical-select';
+import { HierarchicalMultiSelect } from '@/components/ui/hierarchical-multi-select';
+
+const businessEventOptions: HierarchicalOption[] = [
+  { value: 'create-new', label: '+ Create New' },
+  {
+    value: 'applications',
+    label: 'Applications',
+    children: [
+      {
+        value: 'pmf',
+        label: 'PMF',
+        children: [
+          { value: 'pmf-stage-flume', label: 'Stage FLUME stages commitment data in PMF database' },
+          { value: 'pmf-event-1', label: 'Event description' },
+        ]
+      },
+      {
+        value: 'lsa',
+        label: 'LSA',
+        children: [
+          { value: 'lsa-event-1', label: 'LSA event description' },
+        ]
+      },
+      {
+        value: 'cpa',
+        label: 'CPA',
+        children: [
+          { value: 'cpa-event-1', label: 'CPA event description' },
+        ]
+      },
+      {
+        value: 'application-c-i',
+        label: 'Application C-I',
+        children: [
+          { value: 'c-i-event-1', label: 'C-I event description' },
+        ]
+      },
+    ]
+  },
+];
+
+const entityOptions: HierarchicalOption[] = [
+  { value: 'create-new', label: '+ Create New' },
+  {
+    value: 'loan-entities',
+    label: 'Loan Entities',
+    children: [
+      { value: 'loan-commitment', label: 'Loan Commitment description' },
+      { value: 'loan-application', label: 'Loan Application description' },
+    ]
+  },
+  {
+    value: 'other-entities',
+    label: 'Other Entities',
+    children: [
+      { value: 'name-name', label: 'name_name description' },
+      { value: 'entity-1', label: 'Entity 1 description' },
+      { value: 'entity-2', label: 'Entity 2 description' },
+    ]
+  },
+];
+
+const multiSelectEntityOptions: HierarchicalOption[] = [
+  { value: 'select-all', label: 'Select All' },
+  { value: 'create-new', label: '+ Create New' },
+  {
+    value: 'loan-entities',
+    label: 'Loan Entities',
+    children: [
+      { value: 'loan-commitment', label: 'Loan Commitment description' },
+      { value: 'loan-application', label: 'Loan Application description' },
+    ]
+  },
+  {
+    value: 'other-entities',
+    label: 'Other Entities',
+    children: [
+      { value: 'name-name', label: 'name_name description' },
+      { value: 'entity-1', label: 'Entity 1 description' },
+      { value: 'entity-2', label: 'Entity 2 description' },
+    ]
+  },
+];
+
+const conditionOptions: HierarchicalOption[] = [
+  {
+    value: 'all-of',
+    label: 'All Of (All events occur to transition states)',
+  },
+  {
+    value: 'one-of',
+    label: 'One Of (One event must occur to transition states)',
+  },
+  {
+    value: 'none',
+    label: 'None (Neither option above applies)',
+  },
+];
 
 interface NodeEditorSidebarProps {
   selectedNode: Node | null;
@@ -6,13 +106,29 @@ interface NodeEditorSidebarProps {
   condition: string;
   automaticTrigger: boolean;
   externalTrigger: boolean;
-  onBusinessEventChange: (value: string) => void;
-  onConditionChange: (value: string) => void;
+  focalEntity: string;
+  createdEntities: string[];
+  modifiedEntities: string[];
+  onBusinessEventChange: (value: string, label?: string) => void;
+  onConditionChange: (value: string, label?: string) => void;
   onAutomaticTriggerChange: (checked: boolean) => void;
   onExternalTriggerChange: (checked: boolean) => void;
+  onFocalEntityChange: (value: string, label?: string) => void;
+  onCreatedEntitiesChange: (values: string[]) => void;
+  onModifiedEntitiesChange: (values: string[]) => void;
+  onCreateNew?: () => void;
   onDelete: () => void;
   onDone: () => void;
 }
+
+enum WizardStep {
+  BUSINESS_EVENTS = 0,
+  CONDITION = 1,
+  TRIGGERS = 2,
+  ENTITIES = 3
+}
+
+const TOTAL_STEPS = 4;
 
 export const NodeEditorSidebar = ({
   selectedNode,
@@ -20,17 +136,47 @@ export const NodeEditorSidebar = ({
   condition,
   automaticTrigger,
   externalTrigger,
+  focalEntity,
+  createdEntities,
+  modifiedEntities,
   onBusinessEventChange,
   onConditionChange,
   onAutomaticTriggerChange,
   onExternalTriggerChange,
+  onFocalEntityChange,
+  onCreatedEntitiesChange,
+  onModifiedEntitiesChange,
+  onCreateNew,
   onDelete,
   onDone
 }: NodeEditorSidebarProps) => {
+  const [currentStep, setCurrentStep] = useState(WizardStep.BUSINESS_EVENTS);
+
   if (!selectedNode) return null;
 
   const isTransitionBlock = selectedNode.type === 'event';
   const isStateNode = selectedNode.type === 'state';
+
+  const handleNext = () => {
+    if (currentStep < TOTAL_STEPS - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleDone = () => {
+    setCurrentStep(WizardStep.BUSINESS_EVENTS);
+    onDone();
+  };
+
+
+  const isFirstStep = currentStep === 0;
+  const isLastStep = currentStep === TOTAL_STEPS - 1;
 
   return (
     <div className="w-80 bg-gray-800 text-white flex flex-col shadow-2xl">
@@ -58,112 +204,98 @@ export const NodeEditorSidebar = ({
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
         {isTransitionBlock && (
           <>
-            <div>
-              <label className="text-sm font-medium text-white mb-3 block">
-                Business Event(s) and/or Subworkflow(s)
-              </label>
-              <select 
-                value={businessEvent}
-                onChange={(e) => onBusinessEventChange(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white"
-                data-testid="select-business-event"
-              >
-                <option value="">Select business events and/or subworkflows</option>
-                <option value="create-new">+ Create New</option>
-                <optgroup label="Applications">
-                  <option value="pmf">PMF</option>
-                  <option value="lsa">LSA</option>
-                  <option value="cpa">CPA</option>
-                  <option value="application-c-i">Application C-I</option>
-                </optgroup>
-                <optgroup label="Events">
-                  <option value="stage-flume">Stage FLUME stages commitment data in PMF database</option>
-                  <option value="event-generic">Event description</option>
-                </optgroup>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-white mb-3 block">Condition</label>
-              <select 
-                value={condition}
-                onChange={(e) => onConditionChange(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white"
-                data-testid="select-condition"
-              >
-                <option value="">Select condition</option>
-                <option value="all-of">All Of (All events occur to transition states)</option>
-                <option value="one-of">One Of (One event must occur to transition states)</option>
-                <option value="none">None (Neither option above applies)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-white mb-3 block">Trigger</label>
-              <div className="space-y-3">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={automaticTrigger}
-                    onChange={(e) => onAutomaticTriggerChange(e.target.checked)}
-                    className="w-4 h-4"
-                    data-testid="checkbox-automatic-trigger"
-                  />
-                  <span className="text-white">Automatic</span>
+            {currentStep === WizardStep.BUSINESS_EVENTS && (
+              <div>
+                <label className="text-sm font-medium text-white mb-3 block">
+                  Business Event(s) and/or Subworkflow(s)
                 </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={externalTrigger}
-                    onChange={(e) => onExternalTriggerChange(e.target.checked)}
-                    className="w-4 h-4"
-                    data-testid="checkbox-external-trigger"
-                  />
-                  <span className="text-white">External</span>
-                </label>
+                <HierarchicalSelect
+                  options={businessEventOptions}
+                  value={businessEvent}
+                  onChange={(value, label) => onBusinessEventChange(value, label)}
+                  placeholder="Select business events and/or subworkflows"
+                  onCreateNew={onCreateNew}
+                />
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="text-sm font-medium text-white mb-3 block">Focal Entity</label>
-              <select 
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white"
-                data-testid="select-focal-entity"
-              >
-                <option value="">Select focal entity</option>
-                <option value="create-new">+ Create New</option>
-                <option value="loan-commitment">Loan Commitment description</option>
-                <option value="name-name">name_name description</option>
-              </select>
-            </div>
+            {currentStep === WizardStep.CONDITION && (
+              <div>
+                <label className="text-sm font-medium text-white mb-3 block">Condition</label>
+                <HierarchicalSelect
+                  options={conditionOptions}
+                  value={condition}
+                  onChange={(value, label) => onConditionChange(value, label)}
+                  placeholder="Select condition"
+                  data-testid="select-condition"
+                />
+              </div>
+            )}
 
-            <div>
-              <label className="text-sm font-medium text-white mb-3 block">Created Entities</label>
-              <select 
-                multiple
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-24"
-                data-testid="select-created-entities"
-              >
-                <option value="select-all">Select All</option>
-                <option value="create-new">+ Create New</option>
-                <option value="entity-1">Entity 1 description</option>
-                <option value="entity-2">Entity 2 description</option>
-              </select>
-            </div>
+            {currentStep === WizardStep.TRIGGERS && (
+              <div>
+                <label className="text-sm font-medium text-white mb-3 block">Trigger</label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={automaticTrigger}
+                      onChange={(e) => onAutomaticTriggerChange(e.target.checked)}
+                      className="w-4 h-4"
+                      data-testid="checkbox-automatic-trigger"
+                    />
+                    <span className="text-white">Automatic</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={externalTrigger}
+                      onChange={(e) => onExternalTriggerChange(e.target.checked)}
+                      className="w-4 h-4"
+                      data-testid="checkbox-external-trigger"
+                    />
+                    <span className="text-white">External</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
-            <div>
-              <label className="text-sm font-medium text-white mb-3 block">Modified Entities</label>
-              <select 
-                multiple
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-24"
-                data-testid="select-modified-entities"
-              >
-                <option value="select-all">Select All</option>
-                <option value="create-new">+ Create New</option>
-                <option value="entity-1">Entity 1 description</option>
-                <option value="entity-2">Entity 2 description</option>
-              </select>
-            </div>
+            {currentStep === WizardStep.ENTITIES && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-white mb-3 block">Focal Entity</label>
+                  <HierarchicalSelect
+                    options={entityOptions}
+                    value={focalEntity}
+                    onChange={(value, label) => onFocalEntityChange(value, label)}
+                    placeholder="Select focal entity"
+                    onCreateNew={onCreateNew}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-white mb-3 block">Created Entities</label>
+                  <HierarchicalMultiSelect
+                    options={multiSelectEntityOptions}
+                    value={createdEntities}
+                    onChange={onCreatedEntitiesChange}
+                    placeholder="Select created entities"
+                    onCreateNew={onCreateNew}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-white mb-3 block">Modified Entities</label>
+                  <HierarchicalMultiSelect
+                    options={multiSelectEntityOptions}
+                    value={modifiedEntities}
+                    onChange={onModifiedEntitiesChange}
+                    placeholder="Select modified entities"
+                    onCreateNew={onCreateNew}
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -185,13 +317,44 @@ export const NodeEditorSidebar = ({
       </div>
 
       <div className="p-6 border-t border-gray-600">
-        <button
-          onClick={onDone}
-          className="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-          data-testid="button-done"
-        >
-          Done
-        </button>
+        {isTransitionBlock ? (
+          <div className="flex gap-3">
+            {!isFirstStep && (
+              <button
+                onClick={handlePrevious}
+                className="flex-1 px-4 py-3 bg-gray-600 text-white rounded hover:bg-gray-500"
+                data-testid="button-previous"
+              >
+                Previous
+              </button>
+            )}
+            {!isLastStep ? (
+              <button
+                onClick={handleNext}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+                data-testid="button-next"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleDone}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+                data-testid="button-done"
+              >
+                Done
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={handleDone}
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+            data-testid="button-done"
+          >
+            Done
+          </button>
+        )}
       </div>
     </div>
   );
