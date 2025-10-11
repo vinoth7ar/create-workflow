@@ -34,21 +34,21 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - Invalid targets remain gray
   - Green connection line for valid connections
   - Connection state tracking via onConnectStart/onConnectEnd handlers
-- ✅ **Per-Node State Persistence** (Latest):
+- ✅ **Per-Node State Persistence**:
   - Each node stores configuration in node.data object (businessEvent, condition, triggers, entities)
   - currentNodeData derived from nodes array using selectedNode.id for real-time synchronization
-  - Multi-step wizard preserves state per node - switching nodes loads their saved configuration
+  - Switching nodes loads their saved configuration
   - Human-readable labels stored for display (not internal IDs)
 - ✅ **Hierarchical Components Enhanced**:
-  - All dropdowns use HierarchicalSelect/MultiSelect (including Condition)
+  - All dropdowns use HierarchicalSelect/MultiSelect
   - "+ Create New" button functional in all hierarchical dropdowns
   - onCreateNew callback wired through CreateWorkflow → NodeEditorSidebar → Components
   - Select All with intelligent toggle behavior (all selected → clears, not all → selects all)
-- ✅ **Multi-Step Wizard Complete**:
-  - 4-step wizard for Transition Block configuration
-  - Context-aware Next/Previous/Done buttons
-  - State preservation across wizard steps per node
-  - All entity selectors use hierarchical multi-select with checkboxes
+- ✅ **Single-Page Node Editor** (October 11, 2025):
+  - Replaced multi-step wizard with single-page form matching Figma design
+  - All fields visible at once: Business Event Name, Focal Entity, Description, Created Entities, Modified Entities
+  - Advanced Select links for entity selectors
+  - Previous/Next buttons with rounded styling
 
 ## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
