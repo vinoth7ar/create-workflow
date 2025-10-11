@@ -44,11 +44,13 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - "+ Create New" button functional in all hierarchical dropdowns
   - onCreateNew callback wired through CreateWorkflow → NodeEditorSidebar → Components
   - Select All with intelligent toggle behavior (all selected → clears, not all → selects all)
-- ✅ **Single-Page Node Editor** (October 11, 2025):
-  - Replaced multi-step wizard with single-page form matching Figma design
-  - All fields visible at once: Business Event Name, Focal Entity, Description, Created Entities, Modified Entities
-  - Advanced Select links for entity selectors
-  - Previous/Next buttons with rounded styling
+- ✅ **2-Step Wizard Node Editor** (October 11, 2025):
+  - **Step 1 - Transition Panel**: Business Event(s) dropdown (hierarchical), Condition dropdown, Trigger checkboxes (Automatic/External) - Next button only
+  - **Step 2 - Details**: Business Event Name (text input), Focal Entity (dropdown), Description (textarea), Created Entities (dropdown with Advanced Select), Modified Entities (dropdown with Advanced Select) - Previous/Next buttons
+  - Rounded button styling (rounded-full)
+  - Per-node state persistence across wizard steps
+  - **Wizard Step Reset Fix**: Added useEffect to reset currentStep to TRANSITION_PANEL whenever selectedNode changes, ensuring wizard always starts on Step 1 when switching between nodes
+  - Separate state fields: businessEvent (Step 1 dropdown) vs businessEventName (Step 2 text), condition (Step 1 dropdown) vs description (Step 2 textarea)
 
 ## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)

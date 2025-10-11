@@ -24,7 +24,9 @@ export const CreateWorkflow = () => {
   const currentNode = selectedNode ? nodes.find(n => n.id === selectedNode.id) : null;
   const currentNodeData = currentNode ? {
     businessEvent: (currentNode.data.businessEvent as string) || '',
+    businessEventName: (currentNode.data.businessEventName as string) || '',
     condition: (currentNode.data.condition as string) || '',
+    description: (currentNode.data.description as string) || '',
     automaticTrigger: (currentNode.data.automaticTrigger as boolean) || false,
     externalTrigger: (currentNode.data.externalTrigger as boolean) || false,
     focalEntity: (currentNode.data.focalEntity as string) || '',
@@ -32,7 +34,9 @@ export const CreateWorkflow = () => {
     modifiedEntities: (currentNode.data.modifiedEntities as string[]) || [],
   } : {
     businessEvent: '',
+    businessEventName: '',
     condition: '',
+    description: '',
     automaticTrigger: false,
     externalTrigger: false,
     focalEntity: '',
@@ -388,11 +392,27 @@ export const CreateWorkflow = () => {
     }
   }, [selectedNode, updateNodeData]);
 
+  const handleBusinessEventNameChange = useCallback((value: string) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { 
+        businessEventName: value,
+        label: value // Update label with the name
+      });
+    }
+  }, [selectedNode, updateNodeData]);
+
   const handleConditionChange = useCallback((value: string, label?: string) => {
     if (selectedNode) {
       updateNodeData(selectedNode.id, { 
-        condition: value, 
-        description: label || value // Use human-readable label
+        condition: value,
+      });
+    }
+  }, [selectedNode, updateNodeData]);
+
+  const handleDescriptionChange = useCallback((value: string) => {
+    if (selectedNode) {
+      updateNodeData(selectedNode.id, { 
+        description: value,
       });
     }
   }, [selectedNode, updateNodeData]);
@@ -489,14 +509,18 @@ export const CreateWorkflow = () => {
       <NodeEditorSidebar
         selectedNode={selectedNode}
         businessEvent={currentNodeData.businessEvent}
+        businessEventName={currentNodeData.businessEventName}
         condition={currentNodeData.condition}
+        description={currentNodeData.description}
         automaticTrigger={currentNodeData.automaticTrigger}
         externalTrigger={currentNodeData.externalTrigger}
         focalEntity={currentNodeData.focalEntity}
         createdEntities={currentNodeData.createdEntities}
         modifiedEntities={currentNodeData.modifiedEntities}
         onBusinessEventChange={handleBusinessEventChange}
+        onBusinessEventNameChange={handleBusinessEventNameChange}
         onConditionChange={handleConditionChange}
+        onDescriptionChange={handleDescriptionChange}
         onAutomaticTriggerChange={handleAutomaticTriggerChange}
         onExternalTriggerChange={handleExternalTriggerChange}
         onFocalEntityChange={handleFocalEntityChange}

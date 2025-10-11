@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Node } from '@xyflow/react';
 import { HierarchicalSelect, HierarchicalOption } from '@/components/ui/hierarchical-select';
 import { HierarchicalMultiSelect } from '@/components/ui/hierarchical-multi-select';
@@ -7,7 +8,7 @@ const businessEventOptions: HierarchicalOption[] = [
     value: 'pmf-stage',
     label: 'PMF: Stage',
     children: [
-      { value: 'pmf-stage-flume', label: 'Stage FLUME commitment data in PMF 31/240 database' },
+      { value: 'pmf-stage-flume', label: 'Stage FLUME stages commitment data in PMF 31/240 database' },
       { value: 'pmf-stage-validate', label: 'Stage and validate PMF data' },
     ]
   },
@@ -18,6 +19,21 @@ const businessEventOptions: HierarchicalOption[] = [
       { value: 'oasis-request', label: 'OASIS Request' },
       { value: 'oasis-response', label: 'OASIS Response' },
     ]
+  },
+];
+
+const conditionOptions: HierarchicalOption[] = [
+  {
+    value: 'all-of',
+    label: 'All Of',
+  },
+  {
+    value: 'one-of',
+    label: 'One Of',
+  },
+  {
+    value: 'none',
+    label: 'None',
   },
 ];
 
@@ -77,14 +93,18 @@ const multiSelectEntityOptions: HierarchicalOption[] = [
 interface NodeEditorSidebarProps {
   selectedNode: Node | null;
   businessEvent: string;
+  businessEventName: string;
   condition: string;
+  description: string;
   automaticTrigger: boolean;
   externalTrigger: boolean;
   focalEntity: string;
   createdEntities: string[];
   modifiedEntities: string[];
   onBusinessEventChange: (value: string, label?: string) => void;
+  onBusinessEventNameChange: (value: string) => void;
   onConditionChange: (value: string, label?: string) => void;
+  onDescriptionChange: (value: string) => void;
   onAutomaticTriggerChange: (checked: boolean) => void;
   onExternalTriggerChange: (checked: boolean) => void;
   onFocalEntityChange: (value: string, label?: string) => void;
@@ -95,15 +115,30 @@ interface NodeEditorSidebarProps {
   onDone: () => void;
 }
 
+enum WizardStep {
+  TRANSITION_PANEL = 0,
+  DETAILS = 1,
+}
+
+const TOTAL_STEPS = 2;
+
 export const NodeEditorSidebar = ({
   selectedNode,
   businessEvent,
+  businessEventName,
   condition,
+  description,
+  automaticTrigger,
+  externalTrigger,
   focalEntity,
   createdEntities,
   modifiedEntities,
   onBusinessEventChange,
+  onBusinessEventNameChange,
   onConditionChange,
+  onDescriptionChange,
+  onAutomaticTriggerChange,
+  onExternalTriggerChange,
   onFocalEntityChange,
   onCreatedEntitiesChange,
   onModifiedEntitiesChange,
@@ -111,10 +146,35 @@ export const NodeEditorSidebar = ({
   onDelete,
   onDone
 }: NodeEditorSidebarProps) => {
+  const [currentStep, setCurrentStep] = useState(WizardStep.TRANSITION_PANEL);
+  
+  // Reset wizard step when selectedNode changes
+  useEffect(() => {
+    setCurrentStep(WizardStep.TRANSITION_PANEL);
+  }, [selectedNode?.id]);
+  
   if (!selectedNode) return null;
 
   const isTransitionBlock = selectedNode.type === 'event';
   const isStateNode = selectedNode.type === 'state';
+
+  const handleNext = () => {
+    if (currentStep < TOTAL_STEPS - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Last step, close sidebar
+      setCurrentStep(WizardStep.TRANSITION_PANEL);
+      onDone();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const isFirstStep = currentStep === 0;
 
   return (
     <div className="w-80 bg-gray-800 text-white flex flex-col shadow-2xl">
@@ -142,81 +202,140 @@ export const NodeEditorSidebar = ({
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
         {isTransitionBlock && (
           <>
-            <div>
-              <label className="text-sm font-medium text-gray-400 mb-2 block">
-                Business Event Name
-              </label>
-              <input
-                type="text"
-                value={businessEvent}
-                onChange={(e) => onBusinessEventChange(e.target.value, e.target.value)}
-                placeholder="Stage"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white placeholder-gray-500"
-                data-testid="input-business-event-name"
-              />
-            </div>
+            {currentStep === WizardStep.TRANSITION_PANEL && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-white mb-3 block">
+                    Business Event(s) and/or Subworkflow(s)
+                  </label>
+                  <HierarchicalSelect
+                    options={businessEventOptions}
+                    value={businessEvent}
+                    onChange={(value, label) => onBusinessEventChange(value, label)}
+                    placeholder="Select business event(s) and/or subworkflow(s)"
+                    onCreateNew={onCreateNew}
+                    data-testid="select-business-event"
+                  />
+                </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-400 mb-2 block">Focal Entity</label>
-              <HierarchicalSelect
-                options={entityOptions}
-                value={focalEntity}
-                onChange={(value, label) => onFocalEntityChange(value, label)}
-                placeholder="Select focal entity"
-                onCreateNew={onCreateNew}
-                data-testid="select-focal-entity"
-              />
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-white mb-3 block">Condition</label>
+                  <HierarchicalSelect
+                    options={conditionOptions}
+                    value={condition}
+                    onChange={(value, label) => onConditionChange(value, label)}
+                    placeholder="Select condition"
+                    data-testid="select-condition"
+                  />
+                </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-400 mb-2 block">Description</label>
-              <textarea
-                value={condition}
-                onChange={(e) => onConditionChange(e.target.value, e.target.value)}
-                placeholder="Enter description"
-                rows={4}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white placeholder-gray-500 resize-none"
-                data-testid="textarea-description"
-              />
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-white mb-3 block">Trigger</label>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={automaticTrigger}
+                        onChange={(e) => onAutomaticTriggerChange(e.target.checked)}
+                        className="w-4 h-4"
+                        data-testid="checkbox-automatic-trigger"
+                      />
+                      <span className="text-white">Automatic</span>
+                    </label>
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={externalTrigger}
+                        onChange={(e) => onExternalTriggerChange(e.target.checked)}
+                        className="w-4 h-4"
+                        data-testid="checkbox-external-trigger"
+                      />
+                      <span className="text-white">External</span>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-400 mb-2 block">Created Entities</label>
-              <HierarchicalMultiSelect
-                options={multiSelectEntityOptions}
-                value={createdEntities}
-                onChange={onCreatedEntitiesChange}
-                placeholder="Select created entities"
-                onCreateNew={onCreateNew}
-                data-testid="select-created-entities"
-              />
-              <button
-                onClick={onCreateNew}
-                className="text-blue-400 hover:text-blue-300 text-sm mt-2 transition-colors"
-                data-testid="button-advanced-select-created"
-              >
-                Advanced Select
-              </button>
-            </div>
+            {currentStep === WizardStep.DETAILS && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-gray-400 mb-2 block">
+                    Business Event Name
+                  </label>
+                  <input
+                    type="text"
+                    value={businessEventName}
+                    onChange={(e) => onBusinessEventNameChange(e.target.value)}
+                    placeholder="Stage"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white placeholder-gray-500"
+                    data-testid="input-business-event-name"
+                  />
+                </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-400 mb-2 block">Modified Entities</label>
-              <HierarchicalMultiSelect
-                options={multiSelectEntityOptions}
-                value={modifiedEntities}
-                onChange={onModifiedEntitiesChange}
-                placeholder="Select modified entities"
-                onCreateNew={onCreateNew}
-                data-testid="select-modified-entities"
-              />
-              <button
-                onClick={onCreateNew}
-                className="text-blue-400 hover:text-blue-300 text-sm mt-2 transition-colors"
-                data-testid="button-advanced-select-modified"
-              >
-                Advanced Select
-              </button>
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-400 mb-2 block">Focal Entity</label>
+                  <HierarchicalSelect
+                    options={entityOptions}
+                    value={focalEntity}
+                    onChange={(value, label) => onFocalEntityChange(value, label)}
+                    placeholder="Select focal entity"
+                    onCreateNew={onCreateNew}
+                    data-testid="select-focal-entity"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-400 mb-2 block">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => onDescriptionChange(e.target.value)}
+                    placeholder="FLUME stages commitment data in PMF 31/240 database"
+                    rows={4}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white placeholder-gray-500 resize-none"
+                    data-testid="textarea-description"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-400 mb-2 block">Created Entities</label>
+                  <HierarchicalMultiSelect
+                    options={multiSelectEntityOptions}
+                    value={createdEntities}
+                    onChange={onCreatedEntitiesChange}
+                    placeholder="Select created entities"
+                    onCreateNew={onCreateNew}
+                    data-testid="select-created-entities"
+                  />
+                  <button
+                    onClick={onCreateNew}
+                    className="text-blue-400 hover:text-blue-300 text-sm mt-2 transition-colors"
+                    data-testid="button-advanced-select-created"
+                  >
+                    Advanced Select
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-400 mb-2 block">Modified Entities</label>
+                  <HierarchicalMultiSelect
+                    options={multiSelectEntityOptions}
+                    value={modifiedEntities}
+                    onChange={onModifiedEntitiesChange}
+                    placeholder="Select modified entities"
+                    onCreateNew={onCreateNew}
+                    data-testid="select-modified-entities"
+                  />
+                  <button
+                    onClick={onCreateNew}
+                    className="text-blue-400 hover:text-blue-300 text-sm mt-2 transition-colors"
+                    data-testid="button-advanced-select-modified"
+                  >
+                    Advanced Select
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -240,16 +359,18 @@ export const NodeEditorSidebar = ({
       <div className="p-6 border-t border-gray-600">
         {isTransitionBlock ? (
           <div className="flex gap-3">
+            {!isFirstStep && (
+              <button
+                onClick={handlePrevious}
+                className="flex-1 px-6 py-3 border border-gray-500 rounded-full text-white hover:bg-gray-700 transition-colors"
+                data-testid="button-previous"
+              >
+                Previous
+              </button>
+            )}
             <button
-              onClick={onDone}
-              className="flex-1 px-6 py-3 border border-gray-500 rounded-full text-white hover:bg-gray-700 transition-colors"
-              data-testid="button-previous"
-            >
-              Previous
-            </button>
-            <button
-              onClick={onDone}
-              className="flex-1 px-6 py-3 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors"
+              onClick={handleNext}
+              className={`${isFirstStep ? 'w-full' : 'flex-1'} px-6 py-3 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors`}
               data-testid="button-next"
             >
               Next
