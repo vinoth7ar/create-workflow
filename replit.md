@@ -51,6 +51,15 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - Per-node state persistence across wizard steps
   - **Wizard Step Reset Fix**: Added useEffect to reset currentStep to TRANSITION_PANEL whenever selectedNode changes, ensuring wizard always starts on Step 1 when switching between nodes
   - Separate state fields: businessEvent (Step 1 dropdown) vs businessEventName (Step 2 text), condition (Step 1 dropdown) vs description (Step 2 textarea)
+  - **Dynamic Next/Done Button Logic**: Button text adapts based on workflow context
+    - Transition Blocks: Step 1 always shows "Next", Step 2 shows "Next" if connected node exists, "Done" if workflow ends
+    - State Nodes: Shows "Next" if connected node exists, "Done" if workflow ends
+    - Button label matches action (no label/action mismatches)
+  - **Tag Display for Selected Items**: Visual feedback for selections
+    - Business Events: Shows selected event as green tag with ✕ remove button
+    - Created Entities: Shows all selected entities as individual green tags with remove buttons
+    - Modified Entities: Shows all selected entities as individual green tags with remove buttons
+    - Tags appear above dropdowns, clicking ✕ removes selection
 
 ## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
