@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Node } from '@xyflow/react';
+import { Node, Edge } from '@xyflow/react';
 import { HierarchicalSelect, HierarchicalOption } from '@/components/ui/hierarchical-select';
 import { HierarchicalMultiSelect } from '@/components/ui/hierarchical-multi-select';
+
+// Tag Component for displaying selected items
+const Tag = ({ label, onRemove, testId }: { label: string; onRemove: () => void; testId?: string }) => (
+  <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-full text-sm" data-testid={testId}>
+    <span>{label}</span>
+    <button
+      onClick={onRemove}
+      className="hover:bg-green-700 rounded-full p-0.5 px-1 transition-colors text-white"
+      data-testid={`${testId}-remove`}
+    >
+      ✕
+    </button>
+  </div>
+);
 
 const businessEventOptions: HierarchicalOption[] = [
   {
@@ -92,6 +106,7 @@ const multiSelectEntityOptions: HierarchicalOption[] = [
 
 interface NodeEditorSidebarProps {
   selectedNode: Node | null;
+  edges: Edge[];
   businessEvent: string;
   businessEventName: string;
   condition: string;
@@ -124,6 +139,7 @@ const TOTAL_STEPS = 2;
 
 export const NodeEditorSidebar = ({
   selectedNode,
+  edges,
   businessEvent,
   businessEventName,
   condition,
@@ -157,6 +173,9 @@ export const NodeEditorSidebar = ({
 
   const isTransitionBlock = selectedNode.type === 'event';
   const isStateNode = selectedNode.type === 'state';
+  
+  // Check if there's a node connected after the current node
+  const hasConnectedNodeAfter = edges.some(edge => edge.source === selectedNode.id);
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS - 1) {
@@ -175,6 +194,11 @@ export const NodeEditorSidebar = ({
   };
 
   const isFirstStep = currentStep === 0;
+  const isLastStep = currentStep === TOTAL_STEPS - 1;
+  
+  // Determine button label: "Next" if not on last step OR on last step with connected nodes, otherwise "Done"
+  const shouldShowNext = isTransitionBlock ? !isLastStep || hasConnectedNodeAfter : hasConnectedNodeAfter;
+  const buttonLabel = shouldShowNext ? 'Next' : 'Done';
 
   return (
     <div className="w-80 bg-gray-800 text-white flex flex-col shadow-2xl">
@@ -208,6 +232,15 @@ export const NodeEditorSidebar = ({
                   <label className="text-sm font-medium text-white mb-3 block">
                     Business Event(s) and/or Subworkflow(s)
                   </label>
+                  {businessEvent && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <Tag
+                        label={businessEvent}
+                        onRemove={() => onBusinessEventChange('', '')}
+                        testId="tag-business-event"
+                      />
+                    </div>
+                  )}
                   <HierarchicalSelect
                     options={businessEventOptions}
                     value={businessEvent}
@@ -299,6 +332,21 @@ export const NodeEditorSidebar = ({
 
                 <div>
                   <label className="text-sm font-medium text-gray-400 mb-2 block">Created Entities</label>
+                  {createdEntities.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {createdEntities.map((entity, index) => (
+                        <Tag
+                          key={index}
+                          label={entity}
+                          onRemove={() => {
+                            const newEntities = createdEntities.filter((_, i) => i !== index);
+                            onCreatedEntitiesChange(newEntities);
+                          }}
+                          testId={`tag-created-entity-${index}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                   <HierarchicalMultiSelect
                     options={multiSelectEntityOptions}
                     value={createdEntities}
@@ -318,6 +366,21 @@ export const NodeEditorSidebar = ({
 
                 <div>
                   <label className="text-sm font-medium text-gray-400 mb-2 block">Modified Entities</label>
+                  {modifiedEntities.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {modifiedEntities.map((entity, index) => (
+                        <Tag
+                          key={index}
+                          label={entity}
+                          onRemove={() => {
+                            const newEntities = modifiedEntities.filter((_, i) => i !== index);
+                            onModifiedEntitiesChange(newEntities);
+                          }}
+                          testId={`tag-modified-entity-${index}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                   <HierarchicalMultiSelect
                     options={multiSelectEntityOptions}
                     value={modifiedEntities}
@@ -371,18 +434,18 @@ export const NodeEditorSidebar = ({
             <button
               onClick={handleNext}
               className={`${isFirstStep ? 'w-full' : 'flex-1'} px-6 py-3 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors`}
-              data-testid="button-next"
+              data-testid={buttonLabel === 'Next' ? "button-next" : "button-done"}
             >
-              Next
+              {buttonLabel}
             </button>
           </div>
         ) : (
           <button
             onClick={onDone}
             className="w-full px-6 py-3 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors"
-            data-testid="button-done"
+            data-testid={buttonLabel === 'Next' ? "button-next" : "button-done"}
           >
-            Done
+            {buttonLabel}
           </button>
         )}
       </div>

@@ -508,6 +508,7 @@ export const CreateWorkflow = () => {
 
       <NodeEditorSidebar
         selectedNode={selectedNode}
+        edges={edges}
         businessEvent={currentNodeData.businessEvent}
         businessEventName={currentNodeData.businessEventName}
         condition={currentNodeData.condition}
