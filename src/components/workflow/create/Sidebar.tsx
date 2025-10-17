@@ -28,6 +28,7 @@ export const Sidebar = ({
   // Only disable if auto-positioning is ON and node of that type already exists
   const isEventDisabled = autoPositioning && hasEventNode;
   const isStateDisabled = autoPositioning && hasStateNode;
+  
   return (
     <div className="w-80 bg-white border-r border-gray-300 flex flex-col">
       <div className="p-4 border-b border-gray-300">
