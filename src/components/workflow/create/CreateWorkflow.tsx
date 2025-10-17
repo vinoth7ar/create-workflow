@@ -480,7 +480,8 @@ export const CreateWorkflow = () => {
         workflowName={workflowName}
         workflowDescription={workflowDescription}
         autoPositioning={autoPositioning}
-        selectedNodeType={selectedNode?.type || null}
+        hasEventNode={nodes.some(node => node.type === 'event')}
+        hasStateNode={nodes.some(node => node.type === 'state')}
         onWorkflowNameChange={setWorkflowName}
         onWorkflowDescriptionChange={setWorkflowDescription}
         onAutoPositioningChange={setAutoPositioning}
