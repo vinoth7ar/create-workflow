@@ -60,6 +60,12 @@ This is a React + TypeScript workflow management application built with Vite, Ma
     - Created Entities: Shows all selected entities as individual green tags with remove buttons
     - Modified Entities: Shows all selected entities as individual green tags with remove buttons
     - Tags appear above dropdowns, clicking ✕ removes selection
+- ✅ **Duplicate Node Prevention** (October 17, 2025):
+  - Prevents adding duplicate consecutive node types from a selected node
+  - When a node is selected, the corresponding palette item (Transition Block or State) is disabled
+  - Disabled palette items show visual feedback: grayed out with reduced opacity and cursor-not-allowed
+  - Drag and drop is disabled for matching node types to prevent workflow errors
+  - Implementation: selectedNodeType prop passed from CreateWorkflow to Sidebar component
 
 ## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
