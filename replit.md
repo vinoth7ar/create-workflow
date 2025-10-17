@@ -34,21 +34,41 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - Invalid targets remain gray
   - Green connection line for valid connections
   - Connection state tracking via onConnectStart/onConnectEnd handlers
-- ✅ **Per-Node State Persistence** (Latest):
+- ✅ **Per-Node State Persistence**:
   - Each node stores configuration in node.data object (businessEvent, condition, triggers, entities)
   - currentNodeData derived from nodes array using selectedNode.id for real-time synchronization
-  - Multi-step wizard preserves state per node - switching nodes loads their saved configuration
+  - Switching nodes loads their saved configuration
   - Human-readable labels stored for display (not internal IDs)
 - ✅ **Hierarchical Components Enhanced**:
-  - All dropdowns use HierarchicalSelect/MultiSelect (including Condition)
+  - All dropdowns use HierarchicalSelect/MultiSelect
   - "+ Create New" button functional in all hierarchical dropdowns
   - onCreateNew callback wired through CreateWorkflow → NodeEditorSidebar → Components
   - Select All with intelligent toggle behavior (all selected → clears, not all → selects all)
-- ✅ **Multi-Step Wizard Complete**:
-  - 4-step wizard for Transition Block configuration
-  - Context-aware Next/Previous/Done buttons
-  - State preservation across wizard steps per node
-  - All entity selectors use hierarchical multi-select with checkboxes
+- ✅ **2-Step Wizard Node Editor** (October 11, 2025):
+  - **Step 1 - Transition Panel**: Business Event(s) dropdown (hierarchical), Condition dropdown, Trigger checkboxes (Automatic/External) - Next button only
+  - **Step 2 - Details**: Business Event Name (text input), Focal Entity (dropdown), Description (textarea), Created Entities (dropdown with Advanced Select), Modified Entities (dropdown with Advanced Select) - Previous/Next buttons
+  - Rounded button styling (rounded-full)
+  - Per-node state persistence across wizard steps
+  - **Wizard Step Reset Fix**: Added useEffect to reset currentStep to TRANSITION_PANEL whenever selectedNode changes, ensuring wizard always starts on Step 1 when switching between nodes
+  - Separate state fields: businessEvent (Step 1 dropdown) vs businessEventName (Step 2 text), condition (Step 1 dropdown) vs description (Step 2 textarea)
+  - **Dynamic Next/Done Button Logic**: Button text adapts based on workflow context
+    - Transition Blocks: Step 1 always shows "Next", Step 2 shows "Next" if connected node exists, "Done" if workflow ends
+    - State Nodes: Shows "Next" if connected node exists, "Done" if workflow ends
+    - Button label matches action (no label/action mismatches)
+  - **Tag Display for Selected Items**: Visual feedback for selections
+    - Business Events: Shows selected event as green tag with ✕ remove button
+    - Created Entities: Shows all selected entities as individual green tags with remove buttons
+    - Modified Entities: Shows all selected entities as individual green tags with remove buttons
+    - Tags appear above dropdowns, clicking ✕ removes selection
+- ✅ **Duplicate Node Prevention & Alternating Pattern Enforcement** (October 17, 2025):
+  - Enforces alternating Transition Block ↔ State pattern when auto-positioning is enabled
+  - When auto-positioning is ON:
+    - After adding Transition Block → only State palette enabled (to create connection)
+    - After adding State → only Transition Block palette enabled (to create connection)
+    - Ensures proper workflow structure with alternating nodes
+  - When auto-positioning is OFF: allows adding multiple nodes of any type
+  - Disabled palette items show visual feedback: grayed out with reduced opacity and cursor-not-allowed
+  - Implementation: lastNodeType (rightmost node by X position) passed from CreateWorkflow to Sidebar component
 
 ## Previous Changes (September 30, 2025)
 - ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
