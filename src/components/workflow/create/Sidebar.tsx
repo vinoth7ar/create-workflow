@@ -2,6 +2,7 @@ interface SidebarProps {
   workflowName: string;
   workflowDescription: string;
   autoPositioning: boolean;
+  selectedNodeType: string | null;
   onWorkflowNameChange: (value: string) => void;
   onWorkflowDescriptionChange: (value: string) => void;
   onAutoPositioningChange: (value: boolean) => void;
@@ -14,6 +15,7 @@ export const Sidebar = ({
   workflowName,
   workflowDescription,
   autoPositioning,
+  selectedNodeType,
   onWorkflowNameChange,
   onWorkflowDescriptionChange,
   onAutoPositioningChange,
@@ -21,6 +23,8 @@ export const Sidebar = ({
   onSaveDraft,
   onPublishDraft
 }: SidebarProps) => {
+  const isEventDisabled = selectedNodeType === 'event';
+  const isStateDisabled = selectedNodeType === 'state';
   return (
     <div className="w-80 bg-white border-r border-gray-300 flex flex-col">
       <div className="p-4 border-b border-gray-300">
@@ -72,9 +76,13 @@ export const Sidebar = ({
 
         <div className="space-y-3">
           <div
-            className="flex items-center gap-3 p-3 bg-gray-100 rounded border border-gray-300 cursor-move hover:bg-gray-200"
-            draggable
-            onDragStart={(e) => onDragStart(e, 'event')}
+            className={`flex items-center gap-3 p-3 rounded border ${
+              isEventDisabled 
+                ? 'bg-gray-200 border-gray-300 cursor-not-allowed opacity-50' 
+                : 'bg-gray-100 border-gray-300 cursor-move hover:bg-gray-200'
+            }`}
+            draggable={!isEventDisabled}
+            onDragStart={(e) => !isEventDisabled && onDragStart(e, 'event')}
             data-testid="palette-transition-block"
           >
             <div className="w-5 h-4 bg-gray-400 rounded flex items-center justify-center">
@@ -87,9 +95,13 @@ export const Sidebar = ({
           </div>
 
           <div
-            className="flex items-center gap-3 p-3 bg-gray-100 rounded border border-gray-300 cursor-move hover:bg-gray-200"
-            draggable
-            onDragStart={(e) => onDragStart(e, 'state')}
+            className={`flex items-center gap-3 p-3 rounded border ${
+              isStateDisabled 
+                ? 'bg-gray-200 border-gray-300 cursor-not-allowed opacity-50' 
+                : 'bg-gray-100 border-gray-300 cursor-move hover:bg-gray-200'
+            }`}
+            draggable={!isStateDisabled}
+            onDragStart={(e) => !isStateDisabled && onDragStart(e, 'state')}
             data-testid="palette-state"
           >
             <div className="w-5 h-4 bg-gray-400 rounded-full flex items-center justify-center">
