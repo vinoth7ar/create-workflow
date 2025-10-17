@@ -480,6 +480,7 @@ export const CreateWorkflow = () => {
         workflowName={workflowName}
         workflowDescription={workflowDescription}
         autoPositioning={autoPositioning}
+        selectedNodeType={selectedNode?.type || null}
         onWorkflowNameChange={setWorkflowName}
         onWorkflowDescriptionChange={setWorkflowDescription}
         onAutoPositioningChange={setAutoPositioning}
