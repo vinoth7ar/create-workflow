@@ -2,8 +2,7 @@ interface SidebarProps {
   workflowName: string;
   workflowDescription: string;
   autoPositioning: boolean;
-  hasEventNode: boolean;
-  hasStateNode: boolean;
+  lastNodeType: string | null;
   onWorkflowNameChange: (value: string) => void;
   onWorkflowDescriptionChange: (value: string) => void;
   onAutoPositioningChange: (value: boolean) => void;
@@ -16,8 +15,7 @@ export const Sidebar = ({
   workflowName,
   workflowDescription,
   autoPositioning,
-  hasEventNode,
-  hasStateNode,
+  lastNodeType,
   onWorkflowNameChange,
   onWorkflowDescriptionChange,
   onAutoPositioningChange,
@@ -25,9 +23,12 @@ export const Sidebar = ({
   onSaveDraft,
   onPublishDraft
 }: SidebarProps) => {
-  // Only disable if auto-positioning is ON and node of that type already exists
-  const isEventDisabled = autoPositioning && hasEventNode;
-  const isStateDisabled = autoPositioning && hasStateNode;
+  // When auto-positioning is ON, enforce alternating pattern
+  // If last node is 'event' → disable event, enable state (to create connection)
+  // If last node is 'state' → disable state, enable event (to create connection)
+  // If no nodes → enable both
+  const isEventDisabled = autoPositioning && lastNodeType === 'event';
+  const isStateDisabled = autoPositioning && lastNodeType === 'state';
   
   return (
     <div className="w-80 bg-white border-r border-gray-300 flex flex-col">
