@@ -103,6 +103,58 @@ export const CreateWorkflow = () => {
     return { id: `${nodeType}-${Date.now()}`, label: `${baseName}${counter}` };
   }, []);
 
+  const findAvailablePosition = useCallback(
+    (sourceNode: CreateWorkflowNode, nodes: CreateWorkflowNode[]) => {
+      const horizontalOffset = 250;
+      const verticalSpacing = 150;
+      const collisionThreshold = 100;
+
+      const basePosition = {
+        x: sourceNode.position.x + horizontalOffset,
+        y: sourceNode.position.y,
+      };
+
+      const isPositionOccupied = (pos: { x: number; y: number }) => {
+        return nodes.some((node) => {
+          const distance = Math.sqrt(
+            Math.pow(node.position.x - pos.x, 2) + Math.pow(node.position.y - pos.y, 2)
+          );
+          return distance < collisionThreshold;
+        });
+      };
+
+      if (!isPositionOccupied(basePosition)) {
+        return basePosition;
+      }
+
+      let offset = 1;
+      let maxAttempts = 20;
+      while (maxAttempts > 0) {
+        const positions = [
+          { x: basePosition.x, y: basePosition.y + verticalSpacing * offset },
+          { x: basePosition.x, y: basePosition.y - verticalSpacing * offset },
+          { x: basePosition.x + horizontalOffset, y: basePosition.y + verticalSpacing * offset },
+          { x: basePosition.x + horizontalOffset, y: basePosition.y - verticalSpacing * offset },
+        ];
+
+        for (const pos of positions) {
+          if (!isPositionOccupied(pos)) {
+            return pos;
+          }
+        }
+
+        offset++;
+        maxAttempts--;
+      }
+
+      return {
+        x: basePosition.x + Math.random() * 100,
+        y: basePosition.y + Math.random() * 100,
+      };
+    },
+    []
+  );
+
   const addConnectedNode = useCallback(
     (sourceId: string, nodeType: string) => {
       const sourceNode = nodes.find((n: { id: string }) => n.id === sourceId);
@@ -111,10 +163,7 @@ export const CreateWorkflow = () => {
       const { id, label } = generateUniqueId(nodeType, nodes);
 
       const newPosition = autoPositioning
-        ? {
-            x: sourceNode.position.x + 200,
-            y: sourceNode.position.y,
-          }
+        ? findAvailablePosition(sourceNode, nodes)
         : {
             x: Math.random() * 400 + 200,
             y: Math.random() * 300 + 100,
@@ -144,7 +193,7 @@ export const CreateWorkflow = () => {
         // Ghost edge will be hidden by the useEffect that monitors edges
       }
     },
-    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId]
+    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, findAvailablePosition]
   );
 
   const autoArrangeNodes = useCallback(() => {
