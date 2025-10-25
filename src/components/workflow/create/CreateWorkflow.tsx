@@ -110,11 +110,9 @@ export const CreateWorkflow = () => {
 
       const { id, label } = generateUniqueId(nodeType, nodes);
 
-      // Calculate position with consistent spacing to prevent overlaps
-      const HORIZONTAL_SPACING = 250; // Distance between node centers
       const newPosition = autoPositioning
         ? {
-            x: sourceNode.position.x + HORIZONTAL_SPACING,
+            x: sourceNode.position.x + 200,
             y: sourceNode.position.y,
           }
         : {
@@ -482,16 +480,12 @@ export const CreateWorkflow = () => {
       if (!type) return;
 
       const { id, label } = generateUniqueId(type, nodes);
-      
-      // Find the rightmost node to position new node relative to it
       const lastNode = nodes.reduce(
         (rightmost: { position: { x: number } }, node: { position: { x: number } }) =>
           node.position.x > rightmost.position.x ? node : rightmost,
         nodes[0]
       );
 
-      // Calculate position with consistent spacing to prevent overlaps
-      const HORIZONTAL_SPACING = 250; // Distance between node centers
       let position;
       if (nodes.length === 0 || !autoPositioning) {
         position = {
@@ -500,7 +494,7 @@ export const CreateWorkflow = () => {
         };
       } else {
         position = {
-          x: lastNode.position.x + HORIZONTAL_SPACING,
+          x: lastNode.position.x + 150,
           y: lastNode.position.y,
         };
       }
