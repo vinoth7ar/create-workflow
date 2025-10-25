@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { FlowNode, NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 type StateNodeProps = {
   data: { label: string; description: string };

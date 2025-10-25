@@ -1,4 +1,4 @@
-import { Node, Edge as ReactFlowEdge } from '@xyflow/react';
+import type { Node, Edge as ReactFlowEdge } from '@xyflow/react';
 
 // Node type constants
 export const NODE_TYPES = {

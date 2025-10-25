@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { FlowNode, NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 type StartNodeProps = {
   data: { label: string; showGhostEdge: boolean };
@@ -35,6 +35,25 @@ const StartNode = ({ id, data, selected }: StartNodeProps) => {
           }}
         />
       </div>
+      
+      {/* Ghost edge indicator - shown when start node has no connections */}
+      {data.showGhostEdge && (
+        <div className="absolute left-full ml-1 flex items-center pointer-events-none">
+          <svg width="100" height="2" className="opacity-40">
+            <line
+              x1="0"
+              y1="1"
+              x2="100"
+              y2="1"
+              stroke="#94a3b8"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+          </svg>
+          <div className="w-3 h-3 rounded-full border-2 border-gray-400 bg-gray-200 -ml-1" />
+        </div>
+      )}
+      
       <button
         className='absolute -right-6 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-500 shadow-md'
         onClick={handlePlusClick}

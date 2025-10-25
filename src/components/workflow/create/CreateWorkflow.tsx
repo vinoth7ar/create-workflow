@@ -12,7 +12,7 @@ import {
   CreateWorkflowNode,
   FlowNode,
   NODE_TYPES,
-} from 'src/models/singleView/nodeTypes';
+} from '@/models/singleView/nodeTypes';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -130,17 +130,7 @@ export const CreateWorkflow = () => {
         },
       };
 
-      setNodes((nds: CreateWorkflowNode[]) => {
-        const updatedNodes = nds.map((n: CreateWorkflowNode) => {
-          // remove ghost edge when a node is connected to start node
-          if (n.id === sourceId && n.type === NODE_TYPES.START) {
-            return { ...n, data: { ...n.data, showGhostEdge: false } };
-          }
-          return n;
-        });
-
-        return [...updatedNodes, newNode];
-      });
+      setNodes((nds: CreateWorkflowNode[]) => [...nds, newNode]);
 
       if (autoPositioning) {
         const newEdge = {
@@ -151,6 +141,7 @@ export const CreateWorkflow = () => {
           markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
         };
         setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
+        // Ghost edge will be hidden by the useEffect that monitors edges
       }
     },
     [nodes, setNodes, setEdges, autoPositioning, generateUniqueId]
@@ -456,6 +447,7 @@ export const CreateWorkflow = () => {
           eds
         )
       );
+      // Ghost edge visibility is managed by the useEffect that monitors edges
       setConnectionNodeId(null);
     },
     [setEdges]
@@ -517,30 +509,19 @@ export const CreateWorkflow = () => {
         },
       };
 
-      setNodes((nds: CreateWorkflowNode[]) => {
-        const updatedNodes = nds
-          .map((n: CreateWorkflowNode) => {
-            // remove ghost edge when a node is connected to start node
-            if (n.id === lastNode.id && n.type === NODE_TYPES.START) {
-              return { ...n, data: { ...n.data, showGhostEdge: false } };
-            }
-            return n;
-          })
-          .concat(newNode);
+      setNodes((nds: CreateWorkflowNode[]) => [...nds, newNode]);
 
-        if (autoPositioning && nodes.length > 0) {
-          const newEdge = {
-            id: `edge-${lastNode.id}-${newNode.id}`,
-            source: lastNode.id,
-            target: newNode.id,
-            style: { strokeWidth: 2, stroke: '#94a3b8' },
-            markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
-          };
-          setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
-        }
-
-        return updatedNodes;
-      });
+      if (autoPositioning && nodes.length > 0) {
+        const newEdge = {
+          id: `edge-${lastNode.id}-${newNode.id}`,
+          source: lastNode.id,
+          target: newNode.id,
+          style: { strokeWidth: 2, stroke: '#94a3b8' },
+          markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
+        };
+        setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
+        // Ghost edge will be hidden by the useEffect that monitors edges
+      }
     },
     [setNodes, setEdges, nodes, autoPositioning, generateUniqueId]
   );
@@ -558,6 +539,28 @@ export const CreateWorkflow = () => {
       window.removeEventListener('addConnectedNode', handleAddConnectedNode as EventListener);
     };
   }, [addConnectedNode]);
+
+  // Monitor edge changes to update start node ghost edge visibility
+  useEffect(() => {
+    const startNodeId = startNodeRef.current.id;
+    const hasOutgoingEdges = edges.some((edge: CreateWorkflowEdge) => edge.source === startNodeId);
+    const shouldShowGhostEdge = !hasOutgoingEdges;
+    
+    setNodes((nds: CreateWorkflowNode[]) => {
+      const startNode = nds.find((n: CreateWorkflowNode) => n.id === startNodeId);
+      
+      // Only update if the ghost edge state needs to change
+      if (!startNode || startNode.data.showGhostEdge === shouldShowGhostEdge) {
+        return nds;
+      }
+      
+      return nds.map((n: CreateWorkflowNode) =>
+        n.id === startNodeId
+          ? { ...n, data: { ...n.data, showGhostEdge: shouldShowGhostEdge } }
+          : n
+      );
+    });
+  }, [edges, setNodes]);
 
   // Node types configuration
   const nodeTypes = useMemo(

@@ -3,8 +3,8 @@ import {
   HierarchicalOption,
   HierarchicalSelect,
 } from '@/components/ui/hierarchical-select';
-import { ChevronDoubleUp, TrashIcon } from 'src/assets';
-import { NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { ChevronDoubleUp, TrashIcon } from '@/assets';
+import { NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 // Tag Component for displaying selected items
 const Tag = ({

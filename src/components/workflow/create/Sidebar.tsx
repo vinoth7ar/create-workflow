@@ -1,5 +1,5 @@
-import { ArrowSymbol, SignBadge } from 'src/assets';
-import { NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { ArrowSymbol, SignBadge } from '@/assets';
+import { NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 interface SidebarProps {
   workflowName: string;

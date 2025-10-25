@@ -6,7 +6,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Connection, Edge, FlowNode, NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { Connection, Edge, FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 import './CreateWorkflow.scss';
 
 interface CanvasProps {

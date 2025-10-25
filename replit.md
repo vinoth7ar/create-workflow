@@ -1,50 +1,61 @@
 # Pipeline Management Framework - Replit Setup
 
 ## Project Overview
-This is a React + TypeScript workflow management application built with Vite, Material-UI, and React Flow. It allows users to visualize and manage workflows and entities through an intuitive single-view system.
+This is a React + TypeScript workflow management application built with Vite, Material-UI, and React Flow. It allows users to visualize and manage workflows and entities through an intuitive single-view system with a StartNode component and advanced node type system.
 
 ## Current Setup
 - **Frontend Framework**: React 18.3.1 with TypeScript
 - **Build Tool**: Vite 5.4.19
-- **UI Libraries**: Material-UI, Radix UI components, shadcn-ui
+- **UI Libraries**: Material-UI, Radix UI components, shadcn-ui, Lucide React
 - **Routing**: React Router DOM 6.30.1
 - **Visualization**: React Flow (@xyflow/react)
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS + SCSS (sass-embedded)
 
-## Recent Changes (October 8, 2025)
-- ✅ **Major Refactoring**: Restructured workflow editor into modular architecture following CreateWorkflow pattern
-- ✅ Separated concerns into focused components:
-  - `CreateWorkflow.tsx` - Main orchestrating component
-  - `Sidebar.tsx` - Workflow metadata & component palette
-  - `Canvas.tsx` - React Flow visualization
-  - `NodeEditorSidebar.tsx` - Node property editor
-  - Extracted node components to `nodes/` folder (StateNode, EventNode)
-- ✅ Fixed manual node dragging when auto-positioning is disabled
-- ✅ Maintained all existing functionality: real-time updates, highlighting, auto-positioning, save/publish
-- ✅ **Dynamic Sidebar Implementation** (based on Figma specs):
-  - NodeEditorSidebar now renders different forms based on node type:
-    - Transition Block (event): Business Events dropdown (hierarchical), Condition dropdown (All Of/One Of/None), Trigger checkboxes, Entity selectors
-    - State Node (state): Simple State Name text input
-- ✅ **Connection Validation**:
-  - Implemented isValidConnection logic to only allow valid connections (Transition Block ↔ State)
-  - Prevents invalid node pairings
-- ✅ **Dynamic Visual Feedback**:
-  - Connection handles are gray by default
-  - Handles turn green only for valid connection targets during drag
-  - Invalid targets remain gray
-  - Green connection line for valid connections
-  - Connection state tracking via onConnectStart/onConnectEnd handlers
-- ✅ **Per-Node State Persistence**:
-  - Each node stores configuration in node.data object (businessEvent, condition, triggers, entities)
-  - currentNodeData derived from nodes array using selectedNode.id for real-time synchronization
-  - Switching nodes loads their saved configuration
-  - Human-readable labels stored for display (not internal IDs)
-- ✅ **Hierarchical Components Enhanced**:
-  - All dropdowns use HierarchicalSelect/MultiSelect
-  - "+ Create New" button functional in all hierarchical dropdowns
-  - onCreateNew callback wired through CreateWorkflow → NodeEditorSidebar → Components
-  - Select All with intelligent toggle behavior (all selected → clears, not all → selects all)
-- ✅ **2-Step Wizard Node Editor** (October 11, 2025):
+## Recent Changes (October 25, 2025)
+- ✅ **Complete Codebase Refactor**: Implemented new architecture based on user's repository structure
+- ✅ **New Node Type System**: Replaced old node types with START, STATE, EVENT constants
+- ✅ **StartNode Component**: Added non-removable start node that initializes workflows
+  - Default position at (150, 200)
+  - Ghost edge indicator when no nodes connected
+  - Only allows connections to EVENT type nodes
+  - Cannot be deleted or selected for editing
+- ✅ **Updated Node Components**:
+  - `StartNode.tsx` - New start node with ghost edge feature
+  - `StateNode.tsx` - Updated with new type system and connection validation
+  - `EventNode.tsx` - Updated Transition Block component with proper styling
+- ✅ **SCSS Styling System**: Added CreateWorkflow.scss with:
+  - Button mixins (primary-button, secondary-button)
+  - Input field styles
+  - Transition block styling
+  - Stage node styles
+- ✅ **New Type Definitions**: Created `src/models/singleView/nodeTypes.ts`
+  - FlowNode, CreateWorkflowNode, CreateWorkflowEdge interfaces
+  - NODE_TYPES constants (START, STATE, EVENT)
+  - Connection, HierarchicalOption types
+- ✅ **Icon System**: Created `src/assets/index.tsx` with Lucide React icons
+  - ArrowSymbol, SignBadge, ChevronDoubleUp, TrashIcon, DragReorder
+- ✅ **Import Path Resolution**: Updated all imports to use `@/` alias for consistency
+- ✅ **Dependencies Added**:
+  - `sass-embedded` for SCSS support
+  - `lucide-react` for icon components
+- ✅ **Alternating Pattern with Start Node**: Enhanced pattern enforcement
+  - Start node → only EVENT nodes allowed (enforced at connection level)
+  - EVENT → STATE → EVENT alternating pattern
+  - Auto-positioning respects start node as origin point
+
+## Recent Changes (October 17, 2025)
+- ✅ **Duplicate Node Prevention & Alternating Pattern Enforcement**:
+  - Enforces alternating Transition Block ↔ State pattern when auto-positioning is enabled
+  - When auto-positioning is ON:
+    - After adding Transition Block → only State palette enabled (to create connection)
+    - After adding State → only Transition Block palette enabled (to create connection)
+    - Ensures proper workflow structure with alternating nodes
+  - When auto-positioning is OFF: allows adding multiple nodes of any type
+  - Disabled palette items show visual feedback: grayed out with reduced opacity and cursor-not-allowed
+  - Implementation: lastNodeType (rightmost node by X position) passed from CreateWorkflow to Sidebar component
+
+## Recent Changes (October 11, 2025)
+- ✅ **2-Step Wizard Node Editor**:
   - **Step 1 - Transition Panel**: Business Event(s) dropdown (hierarchical), Condition dropdown, Trigger checkboxes (Automatic/External) - Next button only
   - **Step 2 - Details**: Business Event Name (text input), Focal Entity (dropdown), Description (textarea), Created Entities (dropdown with Advanced Select), Modified Entities (dropdown with Advanced Select) - Previous/Next buttons
   - Rounded button styling (rounded-full)
@@ -60,51 +71,35 @@ This is a React + TypeScript workflow management application built with Vite, Ma
     - Created Entities: Shows all selected entities as individual green tags with remove buttons
     - Modified Entities: Shows all selected entities as individual green tags with remove buttons
     - Tags appear above dropdowns, clicking ✕ removes selection
-- ✅ **Duplicate Node Prevention & Alternating Pattern Enforcement** (October 17, 2025):
-  - Enforces alternating Transition Block ↔ State pattern when auto-positioning is enabled
-  - When auto-positioning is ON:
-    - After adding Transition Block → only State palette enabled (to create connection)
-    - After adding State → only Transition Block palette enabled (to create connection)
-    - Ensures proper workflow structure with alternating nodes
-  - When auto-positioning is OFF: allows adding multiple nodes of any type
-  - Disabled palette items show visual feedback: grayed out with reduced opacity and cursor-not-allowed
-  - Implementation: lastNodeType (rightmost node by X position) passed from CreateWorkflow to Sidebar component
-
-## Previous Changes (September 30, 2025)
-- ✅ Consolidated create/edit functionality into single component (WorkflowEditor.tsx)
-- ✅ Removed unnecessary Editor.tsx wrapper page for cleaner architecture
-- ✅ Implemented real-time node editor updates without "Next" button
-- ✅ Added immediate reflection of dropdown changes on canvas
-- ✅ Fixed plus icon positioning (8px from nodes) with gray colors
-- ✅ Implemented consistent node sizing (40x40px for both types)
-- ✅ Fixed auto-positioning logic (250px spacing when ON, random when OFF)
-
-## Previous Changes (September 29, 2025)
-- ✅ Successfully configured Vite for Replit environment
-- ✅ Set proper host configuration (`0.0.0.0:5000`)
-- ✅ Added `allowedHosts: true` to bypass host header verification for Replit proxy
-- ✅ Configured polling-based file watching to avoid ENOSPC errors
-- ✅ Set up frontend workflow on port 5000
-- ✅ Configured deployment for autoscale with build and preview commands
 
 ## Project Architecture
 ### Frontend Structure
 - **Pages**: Index (landing), View, NotFound
+- **Models**: Type definitions and interfaces
+  - `src/models/singleView/nodeTypes.ts` - Core node and edge type definitions
+- **Assets**: Icon components
+  - `src/assets/index.tsx` - Lucide React icon exports
 - **Workflow Components** (Modular Structure):
   - `src/components/workflow/create/`
     - `CreateWorkflow.tsx` - Main orchestrating component managing all state
+    - `CreateWorkflow.scss` - SCSS styling for workflow components
     - `Sidebar.tsx` - Workflow metadata form & component palette
     - `Canvas.tsx` - React Flow canvas with highlighting & interactions
-    - `NodeEditorSidebar.tsx` - Node editing panel with real-time updates
-    - `nodes/` - Custom node components (StateNode, EventNode)
+    - `NodeEditorSidebar.tsx` - Node editing panel with 2-step wizard
+    - `nodes/` - Custom node components
+      - `StartNode.tsx` - Non-removable workflow start node
+      - `StateNode.tsx` - State/Stage node (circular)
+      - `EventNode.tsx` - Transition Block node (rectangular)
   - `WorkflowManager.tsx` - Workflow visualization and viewing
 - **Utils**: Layout utilities and workflow data management
 - **Hooks**: Mobile detection and HTTP data management
 
 ### Key Files
-- `vite.config.ts`: Configured for Replit with proxy bypass
+- `vite.config.ts`: Configured for Replit with proxy bypass, `@/` alias for src
 - `src/App.tsx`: Main routing configuration (imports CreateWorkflow)
 - `src/components/workflow/create/CreateWorkflow.tsx`: Main workflow creation component
+- `src/models/singleView/nodeTypes.ts`: Type definitions for nodes, edges, and connections
+- `src/assets/index.tsx`: Icon component exports
 - `src/pages/`: Application pages (Index, View, NotFound)
 
 ## Development Workflow
@@ -118,7 +113,15 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - **Build Command**: `npm run build`
 - **Run Command**: `npm run preview`
 
+## Technical Notes
+- **Import Paths**: All imports use `@/` alias (e.g., `@/models/singleView/nodeTypes`)
+- **SCSS Deprecations**: Using modern Sass, some legacy functions (darken) show warnings
+- **Node Type Validation**: Connection validation enforces START → EVENT → STATE → EVENT pattern
+- **Ghost Edge Feature**: Start node shows visual indicator when no nodes are connected
+- **Auto-positioning Origin**: Start node is fixed at (150, 200), new nodes branch from this position
+
 ## User Preferences
 - Prefers React with TypeScript for frontend development
-- Uses modern UI component libraries (Material-UI, Radix UI)
+- Uses modern UI component libraries (Material-UI, Radix UI, Lucide React)
 - Workflow visualization is a key feature requirement
+- SCSS for component styling with Tailwind for utility classes
