@@ -2,7 +2,12 @@ import { Handle, Position } from '@xyflow/react';
 import { FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 type StartNodeProps = {
-  data: { label: string; showGhostEdge: boolean };
+  data: { 
+    label: string; 
+    showGhostEdge: boolean;
+    isConnecting?: boolean;
+    connectionSourceType?: string;
+  };
   selected?: boolean;
   id: string;
 };
@@ -17,6 +22,9 @@ const StartNode = ({ id, data, selected }: StartNodeProps) => {
     );
   };
 
+  // Determine if this node is a valid target during connection
+  const isValidTarget = data.isConnecting && data.connectionSourceType === NODE_TYPES.EVENT;
+
   return (
     <div className="group relative flex items-center">
       <div className={`relative w-20 h-20 rounded-full border-2 flex items-center justify-center shadow-sm transition-all ${
@@ -25,10 +33,29 @@ const StartNode = ({ id, data, selected }: StartNodeProps) => {
           : 'border-gray-400 bg-gray-50'
       }`}>
         <div className="text-xs font-medium text-gray-800 text-center px-1">{data.label}</div>
+        
+        {/* Target handle - receives connections from Event nodes */}
+        <Handle
+          type='target'
+          position={Position.Left}
+          className={`w-3 h-3 transition-all ${
+            isValidTarget
+              ? '!bg-green-500 !border-green-600'
+              : data.isConnecting
+              ? '!bg-gray-300 !border-gray-400 opacity-50'
+              : '!bg-gray-400 !border-gray-500'
+          }`}
+          isValidConnection={(connection) => {
+            const sourceNode = connection.sourceNode as FlowNode | undefined;
+            return sourceNode?.type === NODE_TYPES.EVENT;
+          }}
+        />
+        
+        {/* Source handle - connects to Event nodes */}
         <Handle
           type='source'
           position={Position.Right}
-          className='w-2 h-2'
+          className='w-2 h-2 !bg-gray-400 !border-gray-500'
           isValidConnection={(connection) => {
             const targetNode = connection.targetNode as FlowNode | undefined;
             return targetNode?.type === NODE_TYPES.EVENT;

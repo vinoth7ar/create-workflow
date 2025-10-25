@@ -54,8 +54,21 @@ export const Canvas = ({
 
     if (!sourceNode || !targetNode) return false;
 
+    // Prevent self-connections
+    if (connection.source === connection.target) return false;
+
+    // Check if connection already exists (prevent duplicates)
+    const connectionExists = edges.some(
+      (edge) =>
+        (edge.source === connection.source && edge.target === connection.target) ||
+        (edge.source === connection.target && edge.target === connection.source)
+    );
+    if (connectionExists) return false;
+
+    // Valid connection pairs (bidirectional)
     const validPairs = [
       { source: NODE_TYPES.START, target: NODE_TYPES.EVENT },
+      { source: NODE_TYPES.EVENT, target: NODE_TYPES.START },
       { source: NODE_TYPES.EVENT, target: NODE_TYPES.STATE },
       { source: NODE_TYPES.STATE, target: NODE_TYPES.EVENT },
     ];
