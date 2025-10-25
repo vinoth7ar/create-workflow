@@ -16,13 +16,27 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - ✅ **New Node Type System**: Replaced old node types with START, STATE, EVENT constants
 - ✅ **StartNode Component**: Added non-removable start node that initializes workflows
   - Default position at (150, 200)
-  - Ghost edge indicator when no nodes connected
-  - Only allows connections to EVENT type nodes
+  - Ghost edge indicator when no nodes connected (dashed line SVG)
+  - Supports bidirectional connections with EVENT nodes
   - Cannot be deleted or selected for editing
+  - Ghost edge automatically shows/hides based on connection state
+- ✅ **Bidirectional Connection System**: Full manual connection support with visual feedback
+  - **Valid Connections**:
+    - State ↔ Event (bidirectional)
+    - Start ↔ Event (bidirectional)
+  - **Invalid Connections** (prevented):
+    - State ↔ State
+    - Start ↔ State
+    - Event ↔ Event
+    - Duplicate connections between same nodes
+  - **Visual Feedback**: During connection dragging
+    - Valid targets highlight in **green** (larger handles)
+    - Invalid targets show **grayed out** with reduced opacity
+    - Clear visual distinction for easier connection creation
 - ✅ **Updated Node Components**:
-  - `StartNode.tsx` - New start node with ghost edge feature
-  - `StateNode.tsx` - Updated with new type system and connection validation
-  - `EventNode.tsx` - Updated Transition Block component with proper styling
+  - `StartNode.tsx` - Bidirectional support, target handle, visual feedback
+  - `StateNode.tsx` - Enhanced handles with connection state styling
+  - `EventNode.tsx` - Supports connections to/from State and Start nodes
 - ✅ **SCSS Styling System**: Added CreateWorkflow.scss with:
   - Button mixins (primary-button, secondary-button)
   - Input field styles
@@ -38,10 +52,6 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - ✅ **Dependencies Added**:
   - `sass-embedded` for SCSS support
   - `lucide-react` for icon components
-- ✅ **Alternating Pattern with Start Node**: Enhanced pattern enforcement
-  - Start node → only EVENT nodes allowed (enforced at connection level)
-  - EVENT → STATE → EVENT alternating pattern
-  - Auto-positioning respects start node as origin point
 
 ## Recent Changes (October 17, 2025)
 - ✅ **Duplicate Node Prevention & Alternating Pattern Enforcement**:
