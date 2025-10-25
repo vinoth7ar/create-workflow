@@ -109,6 +109,13 @@
   stroke: var(--Neutral-400, #a3a3a3);
 }
 
+// Override React Flow's default selection styling to prevent square outline on state nodes
+.react-flow__node.selected {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+// Remove any conflicting background styles on selected nodes
 .selected {
   background: none !important;
 }
