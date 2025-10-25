@@ -46,10 +46,6 @@ const EventNode = ({ data, selected, id }: EventNodeProps) => {
               ? '!bg-gray-300 !border-gray-400 opacity-50'
               : '!bg-gray-400 !border-gray-500'
           }`}
-          isValidConnection={(connection) => {
-            const sourceNode = connection.sourceNode as FlowNode | undefined;
-            return sourceNode?.type === NODE_TYPES.STATE || sourceNode?.type === NODE_TYPES.START;
-          }}
         />
         <div className='text-xs font-medium text-gray-800'>{data.label}</div>
         {data.description && <div className='text-xs text-gray-500 mt-1'>{data.description}</div>}
@@ -59,10 +55,6 @@ const EventNode = ({ data, selected, id }: EventNodeProps) => {
           type='source' 
           position={Position.Right} 
           className='w-2 h-2 !bg-gray-400 !border-gray-500'
-          isValidConnection={(connection) => {
-            const targetNode = connection.targetNode as FlowNode | undefined;
-            return targetNode?.type === NODE_TYPES.STATE || targetNode?.type === NODE_TYPES.START;
-          }}
         />
       </div>
       <button

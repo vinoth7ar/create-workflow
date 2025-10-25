@@ -45,10 +45,6 @@ const StartNode = ({ id, data, selected }: StartNodeProps) => {
               ? '!bg-gray-300 !border-gray-400 opacity-50'
               : '!bg-gray-400 !border-gray-500'
           }`}
-          isValidConnection={(connection) => {
-            const sourceNode = connection.sourceNode as FlowNode | undefined;
-            return sourceNode?.type === NODE_TYPES.EVENT;
-          }}
         />
         
         {/* Source handle - connects to Event nodes */}
@@ -56,10 +52,6 @@ const StartNode = ({ id, data, selected }: StartNodeProps) => {
           type='source'
           position={Position.Right}
           className='w-2 h-2 !bg-gray-400 !border-gray-500'
-          isValidConnection={(connection) => {
-            const targetNode = connection.targetNode as FlowNode | undefined;
-            return targetNode?.type === NODE_TYPES.EVENT;
-          }}
         />
       </div>
       
