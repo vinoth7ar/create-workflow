@@ -13,10 +13,14 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 
 ## Recent Changes (October 26, 2025)
 - ✅ **Improved Node Positioning & Spacing**:
-  - **Removed Selection Highlights**: Eliminated square border highlights when selecting nodes for cleaner UI
+  - **State Node Selection**: Only the circular border highlights when selected (blue, 3px) - no more div-level highlighting
+  - **Collision Detection**: Prevents nodes from overlapping with other branches
+    - hasCollision function checks 150px minimum distance between nodes
+    - findNonCollidingPosition tries up to 20 positions alternating above/below
+    - Ensures no nodes ever occupy the same position
   - **Smart Vertical Positioning**: Nodes added via + button now alternate above and below the source
     - Pattern: 0, +180px (below), -180px (above), +360px (below), -360px (above), etc.
-    - Prevents overlapping nodes and maintains clean graph layout
+    - Base pattern maintained, but adjusted if collision detected
     - Horizontal spacing: 300px between levels
     - Vertical spacing: 180px between siblings
   - **Auto-Center & Zoom**: New nodes automatically trigger view centering with smooth animation
@@ -30,6 +34,7 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - Canvas component refactored to use forwardRef and expose centerView method
   - Added CanvasRef interface for type-safe ref operations
   - Improved state management with flag-based triggers for graph realignment
+  - StateNode component now only highlights circular border, not entire div container
 
 ## Recent Changes (October 25, 2025)
 - ✅ **Complete Codebase Refactor**: Implemented new architecture based on user's repository structure
