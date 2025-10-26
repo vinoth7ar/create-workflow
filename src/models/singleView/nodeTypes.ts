@@ -1,45 +1,77 @@
-/**
- * ============= CORE TYPES & INTERFACES =============
- * These define the shape of our workflow data and nodes
- */
+import type { Node, Edge as ReactFlowEdge } from '@xyflow/react';
 
-// Core workflow data structure - represents a single workflow step
-export interface WorkflowNode {
-  id: string;
-  type: 'status' | 'event';  // Status = circular nodes, Event = rectangular nodes
+// Node type constants
+export const NODE_TYPES = {
+  START: 'start',
+  STATE: 'state',
+  EVENT: 'event',
+} as const;
+
+// Base node data interface
+export interface NodeData {
   label: string;
+  description?: string;
+  showGhostEdge?: boolean;
+  businessEvent?: string;
+  businessEventName?: string;
+  condition?: string;
+  automaticTrigger?: boolean;
+  externalTrigger?: boolean;
+  focalEntity?: string;
+  createdEntities?: string[];
+  modifiedEntities?: string[];
+  isConnecting?: boolean;
+  connectionNodeId?: string | null;
+  connectionSourceType?: string | null;
 }
 
-// Connection between workflow nodes
-export interface WorkflowEdge {
+// Custom Flow Node type
+export interface FlowNode extends Node {
   id: string;
-  source: string;  // ID of source node
-  target: string;  // ID of target node
+  type: string;
+  position: { x: number; y: number };
+  data: NodeData;
+  sourceNode?: FlowNode;
+  targetNode?: FlowNode;
+}
+
+// Custom CreateWorkflow Node type
+export interface CreateWorkflowNode extends FlowNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: NodeData;
+}
+
+// Custom Edge type
+export interface Edge extends ReactFlowEdge {
+  id: string;
+  source: string;
+  target: string;
+  style?: any;
+  markerEnd?: any;
+}
+
+// Custom CreateWorkflow Edge type
+export interface CreateWorkflowEdge extends Edge {
+  id: string;
+  source: string;
+  target: string;
+  style?: any;
+  markerEnd?: any;
+}
+
+// Connection type
+export interface Connection {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}
+
+// Hierarchical Option type for dropdowns
+export interface HierarchicalOption {
+  value: string;
   label: string;
-}
-
-// Complete workflow definition
-export interface WorkflowData {
-  id: string;
-  name: string;
-  description: string;
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-}
-
-// Raw data that might come from backend APIs (flexible structure)
-export interface RawWorkflowData {
-  [key: string]: any;
-}
-
-// Layout configuration for positioning nodes
-export interface LayoutConfig {
-  workflowWidth: number;
-  workflowHeight: number;
-  stageWidth: number;
-  stageHeight: number;
-  circleSize: number;
-  padding: number;
-  spacing: number;
-  isHorizontal: boolean;
+  children?: HierarchicalOption[];
 }
