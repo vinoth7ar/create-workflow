@@ -30,11 +30,24 @@ This is a React + TypeScript workflow management application built with Vite, Ma
     - Automatically enables auto-positioning
     - Triggers graph realignment with latest state using _triggerRealign flag
     - Uses useEffect to ensure alignment runs after state commits (prevents stale state issues)
+- ✅ **UX Enhancements**:
+  - **Auto-Display Edit Forms**: New nodes automatically open the NodeEditorSidebar
+    - Newly created nodes are immediately selected and highlighted
+    - Edit sidebar opens instantly, allowing users to add details right away
+    - Improves workflow efficiency - no need to manually click the node to edit
+  - **Drag and Drop**: All nodes are now draggable regardless of auto-positioning setting
+    - Users can manually adjust node positions even with auto-positioning enabled
+    - Provides flexibility to customize layout while maintaining automatic organization
+  - **Smart View Fitting**: Canvas automatically centers and zooms when new nodes are added
+    - Smooth 300ms animation with 0.2 padding
+    - Ensures new nodes are always visible without manual panning
+    - Performance-optimized - only triggered once per node addition
 - ✅ **Technical Improvements**:
   - Canvas component refactored to use forwardRef and expose centerView method
   - Added CanvasRef interface for type-safe ref operations
   - Improved state management with flag-based triggers for graph realignment
   - StateNode component now only highlights circular border, not entire div container
+  - nodesDraggable always enabled in Canvas for better user control
 
 ## Recent Changes (October 25, 2025)
 - ✅ **Complete Codebase Refactor**: Implemented new architecture based on user's repository structure
