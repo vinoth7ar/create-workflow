@@ -167,7 +167,7 @@ export const CreateWorkflow = () => {
       // Count how many children this source node already has
       const childrenCount = edges.filter((e: CreateWorkflowEdge) => e.source === sourceId).length;
       
-      const horizontalOffset = 300;
+      const horizontalOffset = 350; // Increased for better spacing, especially for event nodes
       const verticalSpacing = 180;
       
       // Alternate children above and below the source
@@ -313,7 +313,7 @@ export const CreateWorkflow = () => {
       }
 
       const levelWidth = levels[levelIndex]?.length || 1;
-      const nodeSpacing = 250;
+      const nodeSpacing = 350; // Increased for better spacing, especially for event nodes
       const verticalSpacing = 80;
 
       const baseX = START_POSITION.x;

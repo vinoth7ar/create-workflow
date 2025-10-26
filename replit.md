@@ -21,7 +21,7 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - **Smart Vertical Positioning**: Nodes added via + button now alternate above and below the source
     - Pattern: 0, +180px (below), -180px (above), +360px (below), -360px (above), etc.
     - Base pattern maintained, but adjusted if collision detected
-    - Horizontal spacing: 300px between levels
+    - Horizontal spacing: 350px between levels (optimized for event nodes)
     - Vertical spacing: 180px between siblings
   - **Auto-Center & Zoom**: New nodes automatically trigger view centering with smooth animation
     - Uses React Flow's fitView with 0.2 padding and 300ms duration
