@@ -137,7 +137,7 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
-          nodesDraggable={!autoPositioning}
+          nodesDraggable={true}
           isValidConnection={isValidConnection}
           connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2 }}
           fitView

@@ -216,12 +216,21 @@ export const CreateWorkflow = () => {
       };
       setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
 
-      // Auto-center on the new node after a short delay
+      // Auto-select the new node to open the edit sidebar
+      setSelectedNode(newNode);
+
+      // Highlight the new node and its edge
+      setHighlightedElements({
+        nodeIds: [newNode.id],
+        edgeIds: [newEdge.id],
+      });
+
+      // Auto-center on the new node and fit view
       setTimeout(() => {
         canvasRef.current?.centerView();
       }, 100);
     },
-    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning, findNonCollidingPosition]
+    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning, findNonCollidingPosition, setSelectedNode, setHighlightedElements]
   );
 
   const autoArrangeNodes = useCallback((force: boolean = false) => {
