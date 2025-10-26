@@ -225,9 +225,9 @@ export const CreateWorkflow = () => {
         edgeIds: [newEdge.id],
       });
 
-      // Auto-center on the new node and fit view
+      // Auto-center and zoom on the new node
       setTimeout(() => {
-        canvasRef.current?.centerView();
+        canvasRef.current?.centerView(newNode.id);
       }, 100);
     },
     [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning, findNonCollidingPosition, setSelectedNode, setHighlightedElements]

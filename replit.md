@@ -38,9 +38,11 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - **Drag and Drop**: All nodes are now draggable regardless of auto-positioning setting
     - Users can manually adjust node positions even with auto-positioning enabled
     - Provides flexibility to customize layout while maintaining automatic organization
-  - **Smart View Fitting**: Canvas automatically centers and zooms when new nodes are added
-    - Smooth 300ms animation with 0.2 padding
-    - Ensures new nodes are always visible without manual panning
+  - **Smart View Fitting**: Canvas automatically centers and zooms on new nodes when added
+    - Uses React Flow's fitView with specific node for precise centering
+    - Zooms to 1.2x for clear visibility of the new node
+    - Smooth 300ms animation with 0.3 padding
+    - Automatically handles different node sizes (State, Event, Start)
     - Performance-optimized - only triggered once per node addition
 - ✅ **Technical Improvements**:
   - Canvas component refactored to use forwardRef and expose centerView method

@@ -35,7 +35,7 @@ interface CanvasProps {
 }
 
 export interface CanvasRef {
-  centerView: () => void;
+  centerView: (nodeId?: string) => void;
 }
 
 const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
@@ -56,11 +56,26 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
   onDragOver,
   onNodeAdded,
 }, ref) => {
-  const { fitView } = useReactFlow();
+  const { fitView, getNode } = useReactFlow();
 
   useImperativeHandle(ref, () => ({
-    centerView: () => {
-      fitView({ padding: 0.2, duration: 300 });
+    centerView: (nodeId?: string) => {
+      if (nodeId) {
+        // Center and zoom on specific node using fitView
+        const node = getNode(nodeId);
+        if (node) {
+          fitView({ 
+            nodes: [node], 
+            padding: 0.3,
+            minZoom: 1.2,
+            maxZoom: 1.2,
+            duration: 300 
+          });
+        }
+      } else {
+        // Fit all nodes in view
+        fitView({ padding: 0.2, duration: 300 });
+      }
     },
   }));
 
