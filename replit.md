@@ -30,6 +30,13 @@ This is a React + TypeScript workflow management application built with Vite, Ma
     - Automatically enables auto-positioning
     - Triggers graph realignment with latest state using _triggerRealign flag
     - Uses useEffect to ensure alignment runs after state commits (prevents stale state issues)
+  - **Drag & Drop Smart Positioning**: When dragging nodes from palette (regardless of auto-positioning state):
+    - First node: placed 350px right of START node
+    - Subsequent nodes: placed 350px right of the rightmost node
+    - Vertical variation: alternates between -100px, 0px, +100px to avoid straight lines
+    - Collision detection ensures no overlaps with existing nodes
+    - Auto-centers view on newly dropped node for immediate visibility
+    - Node is automatically selected and edit sidebar opens
 - ✅ **UX Enhancements**:
   - **Auto-Display Edit Forms**: New nodes automatically open the NodeEditorSidebar
     - Newly created nodes are immediately selected and highlighted

@@ -566,23 +566,33 @@ export const CreateWorkflow = () => {
       if (!type) return;
 
       const { id, label } = generateUniqueId(type, nodes);
-      const lastNode = nodes.reduce(
-        (rightmost: { position: { x: number } }, node: { position: { x: number } }) =>
-          node.position.x > rightmost.position.x ? node : rightmost,
-        nodes[0]
-      );
-
+      
       let position;
-      if (nodes.length === 0 || !autoPositioning) {
+      if (nodes.length === 0) {
+        // First node after START: place to the right of START
         position = {
-          x: Math.random() * 400 + 200,
-          y: Math.random() * 300 + 100,
+          x: START_POSITION.x + 350,
+          y: START_POSITION.y,
         };
       } else {
-        position = {
-          x: lastNode.position.x + 150,
-          y: lastNode.position.y,
+        // Find the rightmost node
+        const lastNode = nodes.reduce(
+          (rightmost: { position: { x: number; y: number } }, node: { position: { x: number; y: number } }) =>
+            node.position.x > rightmost.position.x ? node : rightmost,
+          nodes[0]
+        );
+
+        // Place new node to the right of the last node
+        const horizontalOffset = 350;
+        const verticalVariation = (nodes.length % 3 - 1) * 100; // -100, 0, or +100 for variation
+        
+        const candidatePosition = {
+          x: lastNode.position.x + horizontalOffset,
+          y: lastNode.position.y + verticalVariation,
         };
+
+        // Check for collisions and find a non-colliding position if needed
+        position = findNonCollidingPosition(candidatePosition, nodes);
       }
 
       const newNode: CreateWorkflowNode = {
@@ -596,8 +606,19 @@ export const CreateWorkflow = () => {
       };
 
       setNodes((nds: CreateWorkflowNode[]) => [...nds, newNode]);
+      
+      // Auto-select and center view on new node
+      setSelectedNode(newNode);
+      setTimeout(() => {
+        canvasRef.current?.centerView(newNode.id);
+      }, 50);
 
       if (autoPositioning && nodes.length > 0) {
+        const lastNode = nodes.reduce(
+          (rightmost: { position: { x: number }; id: string }, node: { position: { x: number }; id: string }) =>
+            node.position.x > rightmost.position.x ? node : rightmost,
+          nodes[0]
+        );
         const newEdge = {
           id: `edge-${lastNode.id}-${newNode.id}`,
           source: lastNode.id,
@@ -609,7 +630,7 @@ export const CreateWorkflow = () => {
         // Ghost edge will be hidden by the useEffect that monitors edges
       }
     },
-    [setNodes, setEdges, nodes, autoPositioning, generateUniqueId]
+    [setNodes, setEdges, nodes, autoPositioning, generateUniqueId, setSelectedNode]
   );
 
   // ==================== EFFECTS & EVENT LISTENERS ====================
