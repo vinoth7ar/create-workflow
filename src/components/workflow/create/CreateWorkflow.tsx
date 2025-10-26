@@ -106,6 +106,51 @@ export const CreateWorkflow = () => {
     return { id: `${nodeType}-${Date.now()}`, label: `${baseName}${counter}` };
   }, []);
 
+  // Check if a position collides with existing nodes
+  const hasCollision = useCallback((position: { x: number; y: number }, existingNodes: CreateWorkflowNode[]) => {
+    const minDistance = 150; // Minimum distance between nodes to avoid overlap
+    
+    return existingNodes.some((node) => {
+      const dx = Math.abs(node.position.x - position.x);
+      const dy = Math.abs(node.position.y - position.y);
+      return dx < minDistance && dy < minDistance;
+    });
+  }, []);
+
+  // Find a non-colliding position for a new node
+  const findNonCollidingPosition = useCallback(
+    (basePosition: { x: number; y: number }, existingNodes: CreateWorkflowNode[]) => {
+      const verticalSpacing = 180;
+      const maxAttempts = 20;
+      
+      // Try the base position first
+      if (!hasCollision(basePosition, existingNodes)) {
+        return basePosition;
+      }
+
+      // Try alternating above and below with increasing distances
+      for (let attempt = 1; attempt < maxAttempts; attempt++) {
+        const offset = attempt * verticalSpacing;
+        
+        // Try below
+        const positionBelow = { ...basePosition, y: basePosition.y + offset };
+        if (!hasCollision(positionBelow, existingNodes)) {
+          return positionBelow;
+        }
+        
+        // Try above
+        const positionAbove = { ...basePosition, y: basePosition.y - offset };
+        if (!hasCollision(positionAbove, existingNodes)) {
+          return positionAbove;
+        }
+      }
+
+      // If all attempts fail, return a position far below
+      return { ...basePosition, y: basePosition.y + maxAttempts * verticalSpacing };
+    },
+    [hasCollision]
+  );
+
   const addConnectedNode = useCallback(
     (sourceId: string, nodeType: string) => {
       const sourceNode = nodes.find((n: { id: string }) => n.id === sourceId);
@@ -140,10 +185,14 @@ export const CreateWorkflow = () => {
           : -halfCount * verticalSpacing; // Above (negative)
       }
       
-      const newPosition = {
+      // Calculate base position
+      const basePosition = {
         x: sourceNode.position.x + horizontalOffset,
         y: sourceNode.position.y + verticalOffset,
       };
+
+      // Find a non-colliding position
+      const newPosition = findNonCollidingPosition(basePosition, nodes);
 
       const newNode: CreateWorkflowNode = {
         id,
@@ -172,7 +221,7 @@ export const CreateWorkflow = () => {
         canvasRef.current?.centerView();
       }, 100);
     },
-    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning]
+    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning, findNonCollidingPosition]
   );
 
   const autoArrangeNodes = useCallback((force: boolean = false) => {
