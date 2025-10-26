@@ -11,6 +11,26 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - **Visualization**: React Flow (@xyflow/react)
 - **Styling**: Tailwind CSS + SCSS (sass-embedded)
 
+## Recent Changes (October 26, 2025)
+- ✅ **Improved Node Positioning & Spacing**:
+  - **Removed Selection Highlights**: Eliminated square border highlights when selecting nodes for cleaner UI
+  - **Smart Vertical Positioning**: Nodes added via + button now alternate above and below the source
+    - Pattern: 0, +180px (below), -180px (above), +360px (below), -360px (above), etc.
+    - Prevents overlapping nodes and maintains clean graph layout
+    - Horizontal spacing: 300px between levels
+    - Vertical spacing: 180px between siblings
+  - **Auto-Center & Zoom**: New nodes automatically trigger view centering with smooth animation
+    - Uses React Flow's fitView with 0.2 padding and 300ms duration
+    - Implemented via Canvas ref and useReactFlow hook
+  - **Auto-Positioning Enhancement**: When auto-positioning is OFF and user adds node via +:
+    - Automatically enables auto-positioning
+    - Triggers graph realignment with latest state using _triggerRealign flag
+    - Uses useEffect to ensure alignment runs after state commits (prevents stale state issues)
+- ✅ **Technical Improvements**:
+  - Canvas component refactored to use forwardRef and expose centerView method
+  - Added CanvasRef interface for type-safe ref operations
+  - Improved state management with flag-based triggers for graph realignment
+
 ## Recent Changes (October 25, 2025)
 - ✅ **Complete Codebase Refactor**: Implemented new architecture based on user's repository structure
 - ✅ **New Node Type System**: Replaced old node types with START, STATE, EVENT constants
