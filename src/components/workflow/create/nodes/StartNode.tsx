@@ -27,11 +27,7 @@ const StartNode = ({ id, data, selected }: StartNodeProps) => {
 
   return (
     <div className="group relative flex items-center">
-      <div className={`relative w-20 h-20 rounded-full border-2 flex items-center justify-center shadow-sm transition-all ${
-        selected
-          ? 'border-blue-500 bg-white ring-4 ring-[lightblue] shadow-md'
-          : 'border-gray-400 bg-gray-50'
-      }`}>
+      <div className='relative w-20 h-20 rounded-full border-2 border-gray-400 bg-gray-50 flex items-center justify-center shadow-sm transition-all'>
         <div className="text-xs font-medium text-gray-800 text-center px-1">{data.label}</div>
         
         {/* Target handle - receives connections from Event nodes */}

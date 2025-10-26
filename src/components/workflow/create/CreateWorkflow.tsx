@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { addEdge, useNodesState, useEdgesState } from '@xyflow/react';
-import { Canvas } from './Canvas';
+import { Canvas, CanvasRef } from './Canvas';
 import { NodeEditorSidebar } from './NodeEditorSidebar';
 import StartNode from './nodes/StartNode';
 import StateNode from './nodes/StateNode';
@@ -37,6 +37,9 @@ export const CreateWorkflow = () => {
       showGhostEdge: true,
     },
   });
+
+  // Canvas ref for centering view
+  const canvasRef = useRef<CanvasRef>(null);
 
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState([startNodeRef.current]);
@@ -103,58 +106,6 @@ export const CreateWorkflow = () => {
     return { id: `${nodeType}-${Date.now()}`, label: `${baseName}${counter}` };
   }, []);
 
-  const findAvailablePosition = useCallback(
-    (sourceNode: CreateWorkflowNode, nodes: CreateWorkflowNode[]) => {
-      const horizontalOffset = 250;
-      const verticalSpacing = 150;
-      const collisionThreshold = 100;
-
-      const basePosition = {
-        x: sourceNode.position.x + horizontalOffset,
-        y: sourceNode.position.y,
-      };
-
-      const isPositionOccupied = (pos: { x: number; y: number }) => {
-        return nodes.some((node) => {
-          const distance = Math.sqrt(
-            Math.pow(node.position.x - pos.x, 2) + Math.pow(node.position.y - pos.y, 2)
-          );
-          return distance < collisionThreshold;
-        });
-      };
-
-      if (!isPositionOccupied(basePosition)) {
-        return basePosition;
-      }
-
-      let offset = 1;
-      let maxAttempts = 20;
-      while (maxAttempts > 0) {
-        const positions = [
-          { x: basePosition.x, y: basePosition.y + verticalSpacing * offset },
-          { x: basePosition.x, y: basePosition.y - verticalSpacing * offset },
-          { x: basePosition.x + horizontalOffset, y: basePosition.y + verticalSpacing * offset },
-          { x: basePosition.x + horizontalOffset, y: basePosition.y - verticalSpacing * offset },
-        ];
-
-        for (const pos of positions) {
-          if (!isPositionOccupied(pos)) {
-            return pos;
-          }
-        }
-
-        offset++;
-        maxAttempts--;
-      }
-
-      return {
-        x: basePosition.x + Math.random() * 100,
-        y: basePosition.y + Math.random() * 100,
-      };
-    },
-    []
-  );
-
   const addConnectedNode = useCallback(
     (sourceId: string, nodeType: string) => {
       const sourceNode = nodes.find((n: { id: string }) => n.id === sourceId);
@@ -162,12 +113,37 @@ export const CreateWorkflow = () => {
 
       const { id, label } = generateUniqueId(nodeType, nodes);
 
-      const newPosition = autoPositioning
-        ? findAvailablePosition(sourceNode, nodes)
-        : {
-            x: Math.random() * 400 + 200,
-            y: Math.random() * 300 + 100,
-          };
+      // If auto-positioning is off, enable it when adding a node via + button
+      const wasAutoPositioningOff = !autoPositioning;
+      if (wasAutoPositioningOff) {
+        setAutoPositioning(true);
+      }
+
+      // Count how many children this source node already has
+      const childrenCount = edges.filter((e: CreateWorkflowEdge) => e.source === sourceId).length;
+      
+      const horizontalOffset = 300;
+      const verticalSpacing = 180;
+      
+      // Alternate children above and below the source
+      // Pattern: 0, +180, -180, +360, -360, +540, -540...
+      // First child (count=0): 0
+      // Second child (count=1): +180 below
+      // Third child (count=2): -180 above
+      // Fourth child (count=3): +360 below
+      let verticalOffset = 0;
+      if (childrenCount > 0) {
+        const isOdd = childrenCount % 2 === 1;
+        const halfCount = Math.ceil(childrenCount / 2);
+        verticalOffset = isOdd 
+          ? halfCount * verticalSpacing  // Below (positive)
+          : -halfCount * verticalSpacing; // Above (negative)
+      }
+      
+      const newPosition = {
+        x: sourceNode.position.x + horizontalOffset,
+        y: sourceNode.position.y + verticalOffset,
+      };
 
       const newNode: CreateWorkflowNode = {
         id,
@@ -176,28 +152,31 @@ export const CreateWorkflow = () => {
         data: {
           label,
           description: nodeType === NODE_TYPES.EVENT ? 'Add business event.' : '',
+          _triggerRealign: wasAutoPositioningOff,
         },
       };
 
       setNodes((nds: CreateWorkflowNode[]) => [...nds, newNode]);
 
-      if (autoPositioning) {
-        const newEdge = {
-          id: `edge-${sourceId}-${newNode.id}`,
-          source: sourceId,
-          target: newNode.id,
-          style: { strokeWidth: 2, stroke: '#94a3b8' },
-          markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
-        };
-        setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
-        // Ghost edge will be hidden by the useEffect that monitors edges
-      }
+      const newEdge = {
+        id: `edge-${sourceId}-${newNode.id}`,
+        source: sourceId,
+        target: newNode.id,
+        style: { strokeWidth: 2, stroke: '#94a3b8' },
+        markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
+      };
+      setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
+
+      // Auto-center on the new node after a short delay
+      setTimeout(() => {
+        canvasRef.current?.centerView();
+      }, 100);
     },
-    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, findAvailablePosition]
+    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning]
   );
 
-  const autoArrangeNodes = useCallback(() => {
-    if (!autoPositioning || nodes.length === 0) return;
+  const autoArrangeNodes = useCallback((force: boolean = false) => {
+    if ((!autoPositioning && !force) || nodes.length === 0) return;
 
     const adjacencyList = new Map<string, string[]>();
     const inDegree = new Map<string, number>();
@@ -611,6 +590,23 @@ export const CreateWorkflow = () => {
     });
   }, [edges, setNodes]);
 
+  // Trigger graph realignment when a node with _triggerRealign flag is added
+  useEffect(() => {
+    const nodeThatTriggeredRealign = nodes.find((n: CreateWorkflowNode) => n.data._triggerRealign);
+    if (nodeThatTriggeredRealign && autoPositioning) {
+      // Clean up the flag
+      setNodes((nds: CreateWorkflowNode[]) =>
+        nds.map((n: CreateWorkflowNode) =>
+          n.id === nodeThatTriggeredRealign.id
+            ? { ...n, data: { ...n.data, _triggerRealign: undefined } }
+            : n
+        )
+      );
+      // Run the alignment with latest state
+      autoArrangeNodes(true);
+    }
+  }, [nodes, autoPositioning, autoArrangeNodes, setNodes]);
+
   // Node types configuration
   const nodeTypes = useMemo(
     () => ({
@@ -661,6 +657,7 @@ export const CreateWorkflow = () => {
       />
 
       <Canvas
+        ref={canvasRef}
         nodes={nodesWithConnectionState}
         edges={edges}
         highlightedElements={highlightedElements}

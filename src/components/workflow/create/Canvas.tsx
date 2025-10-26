@@ -4,10 +4,12 @@ import {
   Controls,
   BackgroundVariant,
   ReactFlowProvider,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Connection, Edge, FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 import './CreateWorkflow.scss';
+import { useEffect, useImperativeHandle, forwardRef } from 'react';
 
 interface CanvasProps {
   nodes: FlowNode[];
@@ -29,9 +31,14 @@ interface CanvasProps {
   onPaneClick: () => void;
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
+  onNodeAdded?: () => void;
 }
 
-export const Canvas = ({
+export interface CanvasRef {
+  centerView: () => void;
+}
+
+const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
   nodes,
   edges,
   highlightedElements,
@@ -47,7 +54,21 @@ export const Canvas = ({
   onPaneClick,
   onDrop,
   onDragOver,
-}: CanvasProps) => {
+  onNodeAdded,
+}, ref) => {
+  const { fitView } = useReactFlow();
+
+  useImperativeHandle(ref, () => ({
+    centerView: () => {
+      fitView({ padding: 0.2, duration: 300 });
+    },
+  }));
+
+  useEffect(() => {
+    if (onNodeAdded) {
+      onNodeAdded();
+    }
+  }, [nodes.length]);
   const isValidConnection = (connection: Connection): boolean => {
     const sourceNode = nodes.find((n) => n.id === connection.source);
     const targetNode = nodes.find((n) => n.id === connection.target);
@@ -79,9 +100,7 @@ export const Canvas = ({
   };
 
   return (
-    <div className='flex-1 relative'>
-      <ReactFlowProvider>
-        <ReactFlow
+    <ReactFlow
           nodes={nodes.map((node) => ({
             ...node,
             style:
@@ -135,9 +154,21 @@ export const Canvas = ({
             showInteractive={false}
           />
         </ReactFlow>
+  );
+});
+
+FlowCanvas.displayName = 'FlowCanvas';
+
+export const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
+  return (
+    <div className='flex-1 relative'>
+      <ReactFlowProvider>
+        <FlowCanvas {...props} ref={ref} />
       </ReactFlowProvider>
     </div>
   );
-};
+});
+
+Canvas.displayName = 'Canvas';
 
 export default Canvas;

@@ -28,11 +28,7 @@ const StateNode = ({ data, selected, id }: StateNodeProps) => {
   return (
     <div className='group relative'>
       <div
-        className={`w-20 h-20 rounded-full border-2 flex items-center justify-center shadow-sm transition-all ${
-          selected
-            ? 'border-blue-500 bg-white ring-4 ring-[lightblue] shadow-md'
-            : 'border-gray-400 bg-gray-50'
-        }`}
+        className='w-20 h-20 rounded-full border-2 border-gray-400 bg-gray-50 flex items-center justify-center shadow-sm transition-all'
       >
         {/* Target handle - receives connections from Event nodes */}
         <Handle

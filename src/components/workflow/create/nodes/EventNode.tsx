@@ -29,11 +29,7 @@ const EventNode = ({ data, selected, id }: EventNodeProps) => {
   return (
     <div className='group relative'>
       <div
-        className={`w-15 h-20 inline-flex flex-col items-center justify-center gap-2 border border-[var(--Neutral-800)] bg-[var(--Primary-100)] p-3 ${
-          selected
-            ? 'border-blue-500 bg-white ring-4 ring-[lightblue] shadow-md'
-            : 'border-gray-300'
-        }`}
+        className='w-15 h-20 inline-flex flex-col items-center justify-center gap-2 border border-gray-300 bg-[var(--Primary-100)] p-3'
       >
         {/* Target handle - receives connections from State and Start nodes */}
         <Handle 
