@@ -54,7 +54,7 @@ const StateNode = ({ data, selected, id }: StateNodeProps) => {
         />
       </div>
       <button
-        className='absolute -right-6 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-500 shadow-md'
+        className='absolute -right-10 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-500 shadow-md'
         onClick={handlePlusClick}
         title='Add Transition Block'
       >

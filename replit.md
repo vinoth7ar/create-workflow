@@ -55,8 +55,9 @@ This is a React + TypeScript workflow management application built with Vite, Ma
   - Canvas component refactored to use forwardRef and expose centerView method
   - Added CanvasRef interface for type-safe ref operations
   - Improved state management with flag-based triggers for graph realignment
-  - StateNode component now only highlights circular border, not entire div container
+  - StateNode component only highlights circular border when selected (no square border/boxShadow)
   - nodesDraggable always enabled in Canvas for better user control
+  - Plus (+) icon for adding connected nodes moved further right (40px) for better spacing
 
 ## Recent Changes (October 25, 2025)
 - ✅ **Complete Codebase Refactor**: Implemented new architecture based on user's repository structure

@@ -123,7 +123,8 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
               highlightedElements.nodeIds?.includes(node.id)
                 ? {
                     ...node.style,
-                    boxShadow: '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)',
+                    // Only apply boxShadow for non-STATE nodes (STATE nodes handle their own selection border)
+                    boxShadow: node.type === NODE_TYPES.STATE ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)',
                     transition: 'all 0.3s ease',
                   }
                 : { ...node.style, transition: 'all 0.3s ease' },
