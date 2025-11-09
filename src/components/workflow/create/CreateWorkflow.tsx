@@ -2,9 +2,9 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { addEdge, useNodesState, useEdgesState } from '@xyflow/react';
 import { Canvas, CanvasRef } from './Canvas';
 import { NodeEditorSidebar } from './NodeEditorSidebar';
-import StartNode from './nodes/StartNode';
-import StateNode from './nodes/StateNode';
-import EventNode from './nodes/EventNode';
+import StartNodeEdit from './nodes/StartNodeEdit';
+import StatusNodeEdit from './nodes/StatusNodeEdit';
+import EventNodeEdit from './nodes/EventNodeEdit';
 import './CreateWorkflow.scss';
 import { Sidebar } from './Sidebar';
 import {
@@ -29,14 +29,14 @@ export const CreateWorkflow = () => {
 
   // initiate a default, non-removable start node
   const startNodeRef = useRef<CreateWorkflowNode>({
-    id: `start-node-${Date.now()}`,
+    id: `${NODE_TYPES.START}-1`,
     type: NODE_TYPES.START,
     position: START_POSITION,
     data: {
       label: 'Start',
       showGhostEdge: true,
     },
-  });
+  } as CreateWorkflowNode);
 
   // Canvas ref for centering view
   const canvasRef = useRef<CanvasRef>(null);
@@ -81,7 +81,7 @@ export const CreateWorkflow = () => {
   const updateNodeData = useCallback(
     (nodeId: string, updates: Record<string, any>) => {
       setNodes((nds: CreateWorkflowNode[]) =>
-        nds.map((node: { id: string; data: any }) =>
+        nds.map((node: CreateWorkflowNode) =>
           node.id === nodeId ? { ...node, data: { ...node.data, ...updates } } : node
         )
       );
@@ -91,7 +91,10 @@ export const CreateWorkflow = () => {
 
   // ==================== HELPER FUNCTIONS ====================
   const generateUniqueId = useCallback((nodeType: string, existingNodes: CreateWorkflowNode[]) => {
-    const baseName = nodeType === NODE_TYPES.STATE ? 'Stage' : 'Action Block';
+    // Keep label empty for Event Node to show helper text: 'Add event/workflow using action panel'
+    if (nodeType === NODE_TYPES.EVENT) return { id: `${nodeType}-${Date.now()}`, label: '' };
+
+    const baseName = nodeType === NODE_TYPES.STATUS ? 'Stage' : '';
     const existingLabels = existingNodes.map((n) => n.data.label?.toString() || '');
 
     if (!existingLabels.includes(baseName)) {
@@ -294,7 +297,7 @@ export const CreateWorkflow = () => {
       levels.push(unvisited.map((n: { id: string }) => n.id));
     }
 
-    const updatedNodes = nodes.map((node: { id: string; type: string }) => {
+    const updatedNodes = nodes.map((node: CreateWorkflowNode) => {
       // fixate the start node and have new nodes branch off its position
       if (node.type === NODE_TYPES.START) {
         return { ...node, position: START_POSITION };
@@ -689,9 +692,9 @@ export const CreateWorkflow = () => {
   // Node types configuration
   const nodeTypes = useMemo(
     () => ({
-      start: StartNode,
-      state: StateNode,
-      event: EventNode,
+      start: StartNodeEdit,
+      status: StatusNodeEdit,
+      event: EventNodeEdit,
     }),
     []
   );
@@ -699,14 +702,14 @@ export const CreateWorkflow = () => {
   // Enhanced nodes with connection state
   const nodesWithConnectionState = useMemo(
     () =>
-      nodes.map((node: { data: any }) => ({
+      nodes.map((node: CreateWorkflowNode) => ({
         ...node,
         data: {
           ...node.data,
           isConnecting: connectionNodeId !== null,
           connectionNodeId,
           connectionSourceType: connectionNodeId
-            ? nodes.find((n: { id: string }) => n.id === connectionNodeId)?.type
+            ? nodes.find((n: CreateWorkflowNode) => n.id === connectionNodeId)?.type
             : null,
         },
       })),
@@ -721,9 +724,8 @@ export const CreateWorkflow = () => {
         autoPositioning={autoPositioning}
         lastNodeType={
           nodes.length > 0
-            ? nodes.reduce(
-                (prev: { position: { x: number } }, current: { position: { x: number } }) =>
-                  prev.position.x > current.position.x ? prev : current
+            ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
+                prev.position.x > current.position.x ? prev : current
               ).type
             : null
         }

@@ -187,7 +187,7 @@ export const NodeEditorSidebar = ({
   if (!selectedNode) return null;
 
   const isTransitionBlock = selectedNode.type === NODE_TYPES.EVENT;
-  const isStateNode = selectedNode.type === NODE_TYPES.STATE;
+  const isStateNode = selectedNode.type === NODE_TYPES.STATUS;
 
   // Check if there's a node connected after the current node
   const hasConnectedNodeAfter = edges.some((edge) => edge.source === selectedNode.id);

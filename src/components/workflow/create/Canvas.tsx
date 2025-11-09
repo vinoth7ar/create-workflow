@@ -105,8 +105,8 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
     const validPairs = [
       { source: NODE_TYPES.START, target: NODE_TYPES.EVENT },
       { source: NODE_TYPES.EVENT, target: NODE_TYPES.START },
-      { source: NODE_TYPES.EVENT, target: NODE_TYPES.STATE },
-      { source: NODE_TYPES.STATE, target: NODE_TYPES.EVENT },
+      { source: NODE_TYPES.EVENT, target: NODE_TYPES.STATUS },
+      { source: NODE_TYPES.STATUS, target: NODE_TYPES.EVENT },
     ];
 
     return validPairs.some(
@@ -123,8 +123,8 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
               highlightedElements.nodeIds?.includes(node.id)
                 ? {
                     ...node.style,
-                    // Only apply boxShadow for non-STATE nodes (STATE nodes handle their own selection border)
-                    boxShadow: node.type === NODE_TYPES.STATE ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)',
+                    // Only apply boxShadow for non-STATUS nodes (STATUS nodes handle their own selection border)
+                    boxShadow: node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)',
                     transition: 'all 0.3s ease',
                   }
                 : { ...node.style, transition: 'all 0.3s ease' },

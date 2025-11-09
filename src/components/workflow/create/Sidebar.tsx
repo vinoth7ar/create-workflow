@@ -28,7 +28,7 @@ export const Sidebar = ({
 }: SidebarProps) => {
   const isEventDisabled = autoPositioning && lastNodeType === NODE_TYPES.EVENT;
   const isStateDisabled =
-    autoPositioning && (lastNodeType === NODE_TYPES.STATE || lastNodeType === NODE_TYPES.START);
+    autoPositioning && (lastNodeType === NODE_TYPES.STATUS || lastNodeType === NODE_TYPES.START);
 
   return (
     <div className='w-80 bg-white border-r border-gray-300 flex flex-col'>
@@ -102,7 +102,7 @@ export const Sidebar = ({
               : 'bg-gray-100 border-gray-300 cursor-move hover:bg-gray-200'
           }`}
           draggable={!isStateDisabled}
-          onDragStart={(e) => !isStateDisabled && onDragStart(e, NODE_TYPES.STATE)}
+          onDragStart={(e) => !isStateDisabled && onDragStart(e, NODE_TYPES.STATUS)}
           data-testid='palette-state'
         >
           <SignBadge />

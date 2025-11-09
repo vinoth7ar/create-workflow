@@ -11,6 +11,19 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - **Visualization**: React Flow (@xyflow/react)
 - **Styling**: Tailwind CSS + SCSS (sass-embedded)
 
+## Recent Changes (November 09, 2025)
+- ✅ **Node Type Renaming: STATE → STATUS**:
+  - Renamed `NODE_TYPES.STATE` to `NODE_TYPES.STATUS` across entire codebase
+  - Renamed `StateNode.tsx` to `StatusNodeEdit.tsx` with matching component name
+  - Updated all node component names with "Edit" suffix: `StartNodeEdit`, `StatusNodeEdit`, `EventNodeEdit`
+  - Updated connection validation rules to use STATUS in Canvas.tsx
+  - Updated auto-positioning guards and drag handlers in Sidebar.tsx
+  - Updated wizard checks in NodeEditorSidebar.tsx for STATUS node detection
+  - Updated nodes/index.ts exports to match new component names
+  - Changed start node ID from timestamp-based to static `start-1`
+  - Fixed all TypeScript type errors using explicit `CreateWorkflowNode` types
+  - Application verified running successfully with no runtime errors
+
 ## Recent Changes (October 26, 2025)
 - ✅ **Improved Node Positioning & Spacing**:
   - **State Node Selection**: Only the circular border highlights when selected (blue, 3px) - no more div-level highlighting
