@@ -374,6 +374,10 @@ export const CreateWorkflow = () => {
     console.log('Publish workflow:', workflowData);
   };
 
+  const handleMaximizeCanvas = () => {
+    canvasRef.current?.maximizeCanvas();
+  };
+
   const handleNodeDelete = () => {
     if (selectedNode) {
       setNodes((nds: CreateWorkflowNode[]) => {
@@ -735,6 +739,7 @@ export const CreateWorkflow = () => {
         onDragStart={onDragStart}
         onSaveDraft={handleSaveDraft}
         onPublishDraft={handlePublishDraft}
+        onMaximizeCanvas={handleMaximizeCanvas}
       />
 
       <Canvas

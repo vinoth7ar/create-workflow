@@ -12,6 +12,7 @@ interface SidebarProps {
   onDragStart: (e: React.DragEvent, nodeType: string) => void;
   onSaveDraft: () => void;
   onPublishDraft: () => void;
+  onMaximizeCanvas: () => void;
 }
 
 export const Sidebar = ({
@@ -25,6 +26,7 @@ export const Sidebar = ({
   onDragStart,
   onSaveDraft,
   onPublishDraft,
+  onMaximizeCanvas,
 }: SidebarProps) => {
   const isEventDisabled = autoPositioning && lastNodeType === NODE_TYPES.EVENT;
   const isStateDisabled =
@@ -129,6 +131,15 @@ export const Sidebar = ({
             />
           </button>
         </div>
+
+        {/* Maximize Canvas button */}
+        <button
+          onClick={onMaximizeCanvas}
+          className='w-full mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium'
+          data-testid='button-maximize-canvas'
+        >
+          Maximize Canvas
+        </button>
       </div>
 
       <div className='p-4 border-t border-gray-600'>

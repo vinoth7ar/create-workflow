@@ -36,6 +36,7 @@ interface CanvasProps {
 
 export interface CanvasRef {
   centerView: (nodeId?: string) => void;
+  maximizeCanvas: () => void;
 }
 
 const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
@@ -76,6 +77,15 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
         // Fit all nodes in view
         fitView({ padding: 0.2, duration: 300 });
       }
+    },
+    maximizeCanvas: () => {
+      // Maximize the canvas by fitting all nodes with minimal padding for optimal space usage
+      fitView({ 
+        padding: 0.1, 
+        duration: 500,
+        minZoom: 0.5,
+        maxZoom: 1.5
+      });
     },
   }));
 
