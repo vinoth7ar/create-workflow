@@ -12,6 +12,19 @@ This is a React + TypeScript workflow management application built with Vite, Ma
 - **Styling**: Tailwind CSS + SCSS (sass-embedded)
 
 ## Recent Changes (November 09, 2025)
+- ✅ **UI Enhancements - Collapsible Editor & Canvas Maximization**:
+  - **NodeEditorSidebar Collapse/Expand**: Added collapsible sidebar functionality
+    - ChevronDoubleUp icon button toggles collapse state with smooth 180° rotation animation
+    - Width transitions: w-80 (expanded) ↔ w-12 (collapsed) with 300ms duration
+    - Content (form fields, buttons) conditionally hidden when collapsed
+    - Trash icon hidden in collapsed state for cleaner UI
+    - Fixed nested button bug by converting ChevronDoubleUp to pure icon component
+  - **Maximize Canvas Feature**: Added helper function to optimize graph visibility
+    - New green "Maximize Canvas" button in Sidebar below Auto-positioning toggle
+    - Implemented `maximizeCanvas()` method in Canvas component using React Flow's `fitView`
+    - Optimal settings: 0.1 padding, 500ms smooth animation, zoom range 0.5-1.5x
+    - Callback passed from CreateWorkflow via `handleMaximizeCanvas`
+    - Enhances workflow visualization by fitting all nodes with minimal padding
 - ✅ **Node Type Renaming: STATE → STATUS**:
   - Renamed `NODE_TYPES.STATE` to `NODE_TYPES.STATUS` across entire codebase
   - Renamed `StateNode.tsx` to `StatusNodeEdit.tsx` with matching component name

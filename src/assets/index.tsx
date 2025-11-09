@@ -13,9 +13,7 @@ export const SignBadge = () => (
 );
 
 export const ChevronDoubleUp = () => (
-  <button className="text-gray-400 hover:text-gray-200 transition-colors">
-    <ChevronUp className="w-5 h-5" />
-  </button>
+  <ChevronUp className="w-5 h-5" />
 );
 
 export const TrashIcon = () => (
