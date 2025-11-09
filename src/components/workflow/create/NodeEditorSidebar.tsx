@@ -178,6 +178,7 @@ export const NodeEditorSidebar = ({
   onDone,
 }: NodeEditorSidebarProps) => {
   const [currentStep, setCurrentStep] = useState(WizardStep.TRANSITION_PANEL);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Reset wizard step when selectedNode changes
   useEffect(() => {
@@ -208,6 +209,10 @@ export const NodeEditorSidebar = ({
     }
   };
 
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === TOTAL_STEPS - 1;
 
@@ -215,15 +220,27 @@ export const NodeEditorSidebar = ({
   const buttonLabel = !isLastStep || (isLastStep && hasConnectedNodeAfter) ? 'Next' : 'Done';
 
   return (
-    <div className='w-80 bg-gray-800 text-white flex flex-col shadow-2xl'>
+    <div className={`${isCollapsed ? 'w-12' : 'w-80'} bg-gray-800 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out overflow-hidden`}>
       <div className='p-4 border-b border-gray-600 flex items-center justify-between'>
-        <ChevronDoubleUp />
-        <button className='text-gray-400 hover:text-red-500 transition-color' onClick={onDelete}>
-          <TrashIcon />
+        <button
+          onClick={toggleCollapse}
+          className='text-gray-400 hover:text-white transition-all cursor-pointer'
+          data-testid='button-toggle-sidebar'
+        >
+          <div className={`transform transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}>
+            <ChevronDoubleUp />
+          </div>
         </button>
+        {!isCollapsed && (
+          <button className='text-gray-400 hover:text-red-500 transition-color' onClick={onDelete} data-testid='button-delete-node'>
+            <TrashIcon />
+          </button>
+        )}
       </div>
 
-      <div className='flex-1 p-6 space-y-6 overflow-y-auto'>
+      {!isCollapsed && (
+        <>
+        <div className='flex-1 p-6 space-y-6 overflow-y-auto'>
         {isTransitionBlock && (
           <>
             {currentStep === WizardStep.TRANSITION_PANEL && (
@@ -456,6 +473,8 @@ export const NodeEditorSidebar = ({
           </button>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };
