@@ -1,2 +1,3 @@
-export { StateNode } from './StateNode';
-export { EventNode } from './EventNode';
+export { StartNodeEdit } from './StartNodeEdit';
+export { StatusNodeEdit } from './StatusNodeEdit';
+export { EventNodeEdit } from './EventNodeEdit';

@@ -19,6 +19,7 @@ interface CanvasProps {
     nodeIds?: string[];
     edgeIds: string[];
   };
+  errorNodeIds?: Set<string>;
   nodeTypes: any;
   autoPositioning: boolean;
   onNodesChange: any;
@@ -36,12 +37,14 @@ interface CanvasProps {
 
 export interface CanvasRef {
   centerView: (nodeId?: string) => void;
+  maximizeCanvas: () => void;
 }
 
 const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
   nodes,
   edges,
   highlightedElements,
+  errorNodeIds = new Set(),
   nodeTypes,
   autoPositioning,
   onNodesChange,
@@ -77,6 +80,15 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
         fitView({ padding: 0.2, duration: 300 });
       }
     },
+    maximizeCanvas: () => {
+      // Maximize the canvas by fitting all nodes with minimal padding for optimal space usage
+      fitView({ 
+        padding: 0.1, 
+        duration: 500,
+        minZoom: 0.5,
+        maxZoom: 1.5
+      });
+    },
   }));
 
   useEffect(() => {
@@ -105,8 +117,8 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
     const validPairs = [
       { source: NODE_TYPES.START, target: NODE_TYPES.EVENT },
       { source: NODE_TYPES.EVENT, target: NODE_TYPES.START },
-      { source: NODE_TYPES.EVENT, target: NODE_TYPES.STATE },
-      { source: NODE_TYPES.STATE, target: NODE_TYPES.EVENT },
+      { source: NODE_TYPES.EVENT, target: NODE_TYPES.STATUS },
+      { source: NODE_TYPES.STATUS, target: NODE_TYPES.EVENT },
     ];
 
     return validPairs.some(
@@ -116,19 +128,30 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
 
   return (
     <ReactFlow
-          nodes={nodes.map((node) => ({
-            ...node,
-            style:
-              highlightedElements.nodeId === node.id ||
-              highlightedElements.nodeIds?.includes(node.id)
-                ? {
-                    ...node.style,
-                    // Only apply boxShadow for non-STATE nodes (STATE nodes handle their own selection border)
-                    boxShadow: node.type === NODE_TYPES.STATE ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)',
-                    transition: 'all 0.3s ease',
-                  }
-                : { ...node.style, transition: 'all 0.3s ease' },
-          }))}
+          nodes={nodes.map((node: any) => {
+            const isHighlighted = highlightedElements.nodeId === node.id || highlightedElements.nodeIds?.includes(node.id);
+            const hasError = errorNodeIds.has(node.id);
+            
+            let styleOverrides: any = {
+              transition: 'all 0.3s ease',
+            };
+            
+            if (hasError) {
+              // EVENT nodes: rectangular border, STATUS nodes: circular border
+              styleOverrides.boxShadow = 'none';
+              styleOverrides.border = '4px solid #ef4444';
+            } else if (isHighlighted) {
+              styleOverrides.boxShadow = node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)';
+            }
+            
+            return {
+              ...node,
+              style: {
+                ...node.style,
+                ...styleOverrides,
+              },
+            };
+          })}
           edges={edges.map((edge) => ({
             ...edge,
             style: highlightedElements.edgeIds.includes(edge.id)

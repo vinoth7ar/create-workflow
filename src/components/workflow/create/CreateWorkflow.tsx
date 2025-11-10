@@ -2,9 +2,10 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { addEdge, useNodesState, useEdgesState } from '@xyflow/react';
 import { Canvas, CanvasRef } from './Canvas';
 import { NodeEditorSidebar } from './NodeEditorSidebar';
-import StartNode from './nodes/StartNode';
-import StateNode from './nodes/StateNode';
-import EventNode from './nodes/EventNode';
+import { ValidationErrorPanel } from './ValidationErrorPanel';
+import StartNodeEdit from './nodes/StartNodeEdit';
+import StatusNodeEdit from './nodes/StatusNodeEdit';
+import EventNodeEdit from './nodes/EventNodeEdit';
 import './CreateWorkflow.scss';
 import { Sidebar } from './Sidebar';
 import {
@@ -13,13 +14,42 @@ import {
   FlowNode,
   NODE_TYPES,
 } from '@/models/singleView/nodeTypes';
+import {
+  validateWorkflow,
+  ValidationMode,
+  ValidationError,
+  ValidationResult,
+  ValidationErrorSeverity,
+} from '@/utils/workflowValidation';
 
 const START_POSITION = { x: 150, y: 200 };
+
+// Grouped validation issues interface
+export interface GroupedValidationIssue {
+  nodeId?: string;
+  nodeName?: string;
+  severity: ValidationErrorSeverity;
+  summary: string;
+  issues: ValidationError[];
+}
 
 export const CreateWorkflow = () => {
   // ===================== STATE MANAGEMENT ====================
   const [workflowName, setWorkflowName] = useState('Hypo Loan Position');
   const [workflowDescription, setWorkflowDescription] = useState('');
+  
+  // Wrapper functions to auto-dismiss error banner when user edits workflow metadata
+  const handleWorkflowNameChange = useCallback((name: string) => {
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
+    setWorkflowName(name);
+  }, []);
+  
+  const handleWorkflowDescriptionChange = useCallback((description: string) => {
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
+    setWorkflowDescription(description);
+  }, []);
   const [autoPositioning, setAutoPositioning] = useState(true);
   const [highlightedElements, setHighlightedElements] = useState<{
     nodeId?: string;
@@ -29,14 +59,14 @@ export const CreateWorkflow = () => {
 
   // initiate a default, non-removable start node
   const startNodeRef = useRef<CreateWorkflowNode>({
-    id: `start-node-${Date.now()}`,
+    id: `${NODE_TYPES.START}-1`,
     type: NODE_TYPES.START,
     position: START_POSITION,
     data: {
       label: 'Start',
       showGhostEdge: true,
     },
-  });
+  } as CreateWorkflowNode);
 
   // Canvas ref for centering view
   const canvasRef = useRef<CanvasRef>(null);
@@ -48,6 +78,11 @@ export const CreateWorkflow = () => {
 
   // Connection state for dynamic handle styling
   const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
+
+  // Validation state
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
+  const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
 
   // Get current node data with defaults - derive from nodes array to stay in sync
   const currentNode = selectedNode
@@ -80,8 +115,12 @@ export const CreateWorkflow = () => {
   // Update node data helper
   const updateNodeData = useCallback(
     (nodeId: string, updates: Record<string, any>) => {
+      // Auto-dismiss error banner when user starts editing
+      setValidationResult(null);
+      setErrorNodeIds(new Set());
+      
       setNodes((nds: CreateWorkflowNode[]) =>
-        nds.map((node: { id: string; data: any }) =>
+        nds.map((node: CreateWorkflowNode) =>
           node.id === nodeId ? { ...node, data: { ...node.data, ...updates } } : node
         )
       );
@@ -91,7 +130,10 @@ export const CreateWorkflow = () => {
 
   // ==================== HELPER FUNCTIONS ====================
   const generateUniqueId = useCallback((nodeType: string, existingNodes: CreateWorkflowNode[]) => {
-    const baseName = nodeType === NODE_TYPES.STATE ? 'Stage' : 'Action Block';
+    // Keep label empty for Event Node to show helper text: 'Add event/workflow using action panel'
+    if (nodeType === NODE_TYPES.EVENT) return { id: `${nodeType}-${Date.now()}`, label: '' };
+
+    const baseName = nodeType === NODE_TYPES.STATUS ? 'Stage' : '';
     const existingLabels = existingNodes.map((n) => n.data.label?.toString() || '');
 
     if (!existingLabels.includes(baseName)) {
@@ -153,6 +195,10 @@ export const CreateWorkflow = () => {
 
   const addConnectedNode = useCallback(
     (sourceId: string, nodeType: string) => {
+      // Auto-dismiss error banner when user adds a new node
+      setValidationResult(null);
+      setErrorNodeIds(new Set());
+      
       const sourceNode = nodes.find((n: { id: string }) => n.id === sourceId);
       if (!sourceNode) return;
 
@@ -294,7 +340,7 @@ export const CreateWorkflow = () => {
       levels.push(unvisited.map((n: { id: string }) => n.id));
     }
 
-    const updatedNodes = nodes.map((node: { id: string; type: string }) => {
+    const updatedNodes = nodes.map((node: CreateWorkflowNode) => {
       // fixate the start node and have new nodes branch off its position
       if (node.type === NODE_TYPES.START) {
         return { ...node, position: START_POSITION };
@@ -330,8 +376,120 @@ export const CreateWorkflow = () => {
     setNodes(updatedNodes);
   }, [nodes, edges, autoPositioning, setNodes]);
 
+  // ==================== VALIDATION ====================
+  const runValidation = useCallback((mode: ValidationMode) => {
+    const result = validateWorkflow(
+      workflowName,
+      workflowDescription,
+      nodes as CreateWorkflowNode[],
+      edges as CreateWorkflowEdge[],
+      mode
+    );
+
+    setValidationResult(result);
+
+    const errorIds = new Set<string>();
+    result.errors.forEach(err => {
+      if (err.nodeId) {
+        errorIds.add(err.nodeId);
+      }
+    });
+    setErrorNodeIds(errorIds);
+
+    return result;
+  }, [workflowName, workflowDescription, nodes, edges]);
+
+  // Group validation errors by node - one error message per node
+  const groupedValidationIssues = useMemo((): GroupedValidationIssue[] => {
+    if (!validationResult) return [];
+
+    const allIssues = [...validationResult.errors, ...validationResult.warnings];
+    const groups = new Map<string, ValidationError[]>();
+
+    // Group issues by nodeId (undefined for workflow-level errors)
+    allIssues.forEach(issue => {
+      const key = issue.nodeId || 'workflow';
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(issue);
+    });
+
+    // Convert to array of GroupedValidationIssue
+    return Array.from(groups.entries()).map(([key, issues]) => {
+      const firstIssue = issues[0];
+      const hasErrors = issues.some(i => i.severity === ValidationErrorSeverity.ERROR);
+      const severity = hasErrors ? ValidationErrorSeverity.ERROR : ValidationErrorSeverity.WARNING;
+      
+      const issueCount = issues.length;
+      const errorCount = issues.filter(i => i.severity === ValidationErrorSeverity.ERROR).length;
+      const warningCount = issues.filter(i => i.severity === ValidationErrorSeverity.WARNING).length;
+      
+      let summary = '';
+      if (key === 'workflow') {
+        summary = issueCount === 1 ? issues[0].message : `Review workflow settings (${issueCount} ${issueCount === 1 ? 'issue' : 'issues'})`;
+      } else {
+        // Use actual node name or generate default based on node type
+        let nodeName = firstIssue.nodeName;
+        if (!nodeName) {
+          const node = nodes.find(n => n.id === firstIssue.nodeId);
+          if (node) {
+            if (node.type === NODE_TYPES.STATUS) {
+              nodeName = node.data.label || 'Stage';
+            } else if (node.type === NODE_TYPES.EVENT) {
+              nodeName = node.data.label || 'Transition Block';
+            } else {
+              nodeName = node.data.label || 'Node';
+            }
+          } else {
+            nodeName = 'Node';
+          }
+        }
+        
+        if (errorCount > 0 && warningCount > 0) {
+          summary = `${nodeName} has ${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}`;
+        } else if (issueCount === 1) {
+          summary = issues[0].message;
+        } else {
+          summary = `${nodeName} has ${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}`;
+        }
+      }
+
+      return {
+        nodeId: key === 'workflow' ? undefined : firstIssue.nodeId,
+        nodeName: key === 'workflow' ? undefined : firstIssue.nodeName,
+        severity,
+        summary,
+        issues,
+      };
+    });
+  }, [validationResult]);
+
+  // Reset error index to 0 when new validation results arrive
+  useEffect(() => {
+    if (validationResult) {
+      setCurrentErrorIndex(0);
+    }
+  }, [validationResult]);
+
+  // Auto-focus first error when validation runs
+  useEffect(() => {
+    if (groupedValidationIssues.length > 0 && groupedValidationIssues[0].nodeId) {
+      handleValidationErrorClick(groupedValidationIssues[0].nodeId);
+    }
+  }, [validationResult]); // Only run when validation result changes
+
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
+    const result = runValidation(ValidationMode.SAVE);
+
+    if (!result.isValid) {
+      console.log('❌ Save blocked: Validation errors found', result.errors);
+      // Auto-focus first error - will be handled by the effect
+      setCurrentErrorIndex(0);
+      return;
+    }
+
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -348,10 +506,22 @@ export const CreateWorkflow = () => {
       })),
       autoPositioning,
     };
-    console.log('Save draft:', workflowData);
+    
+    console.log('✅ Save draft successful:', workflowData);
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
   };
 
   const handlePublishDraft = () => {
+    const result = runValidation(ValidationMode.PUBLISH);
+
+    if (!result.isValid) {
+      console.log('❌ Publish blocked: Validation errors found', result.errors);
+      // Auto-focus first error - will be handled by the effect
+      setCurrentErrorIndex(0);
+      return;
+    }
+
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -368,8 +538,56 @@ export const CreateWorkflow = () => {
       })),
       status: 'published',
     };
-    console.log('Publish workflow:', workflowData);
+    
+    console.log('✅ Publish successful:', workflowData);
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
   };
+
+  const handleMaximizeCanvas = () => {
+    canvasRef.current?.maximizeCanvas();
+  };
+
+  const handleValidationErrorClick = useCallback((nodeId?: string) => {
+    if (!nodeId) return;
+
+    const node = nodes.find((n: CreateWorkflowNode) => n.id === nodeId);
+    if (node) {
+      setSelectedNode(node);
+      canvasRef.current?.centerView(nodeId);
+    }
+  }, [nodes]);
+
+  const handleCloseValidationPanel = useCallback(() => {
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
+    setCurrentErrorIndex(0);
+  }, []);
+
+  const handleNextError = useCallback(() => {
+    const nextIndex = Math.min(currentErrorIndex + 1, groupedValidationIssues.length - 1);
+    setCurrentErrorIndex(nextIndex);
+    if (groupedValidationIssues[nextIndex]?.nodeId) {
+      handleValidationErrorClick(groupedValidationIssues[nextIndex].nodeId);
+    }
+  }, [groupedValidationIssues, currentErrorIndex, handleValidationErrorClick]);
+
+  const handlePreviousError = useCallback(() => {
+    const prevIndex = Math.max(currentErrorIndex - 1, 0);
+    setCurrentErrorIndex(prevIndex);
+    if (groupedValidationIssues[prevIndex]?.nodeId) {
+      handleValidationErrorClick(groupedValidationIssues[prevIndex].nodeId);
+    }
+  }, [groupedValidationIssues, currentErrorIndex, handleValidationErrorClick]);
+
+  const handleFocusError = useCallback((index: number) => {
+    if (index >= 0 && index < groupedValidationIssues.length) {
+      setCurrentErrorIndex(index);
+      if (groupedValidationIssues[index]?.nodeId) {
+        handleValidationErrorClick(groupedValidationIssues[index].nodeId);
+      }
+    }
+  }, [groupedValidationIssues, handleValidationErrorClick]);
 
   const handleNodeDelete = () => {
     if (selectedNode) {
@@ -565,6 +783,10 @@ export const CreateWorkflow = () => {
       const type = event.dataTransfer.getData('application/reactflow');
       if (!type) return;
 
+      // Auto-dismiss error banner when user adds a node via drag-and-drop
+      setValidationResult(null);
+      setErrorNodeIds(new Set());
+
       const { id, label } = generateUniqueId(type, nodes);
       
       let position;
@@ -689,9 +911,9 @@ export const CreateWorkflow = () => {
   // Node types configuration
   const nodeTypes = useMemo(
     () => ({
-      start: StartNode,
-      state: StateNode,
-      event: EventNode,
+      start: StartNodeEdit,
+      status: StatusNodeEdit,
+      event: EventNodeEdit,
     }),
     []
   );
@@ -699,14 +921,14 @@ export const CreateWorkflow = () => {
   // Enhanced nodes with connection state
   const nodesWithConnectionState = useMemo(
     () =>
-      nodes.map((node: { data: any }) => ({
+      nodes.map((node: CreateWorkflowNode) => ({
         ...node,
         data: {
           ...node.data,
           isConnecting: connectionNodeId !== null,
           connectionNodeId,
           connectionSourceType: connectionNodeId
-            ? nodes.find((n: { id: string }) => n.id === connectionNodeId)?.type
+            ? nodes.find((n: CreateWorkflowNode) => n.id === connectionNodeId)?.type
             : null,
         },
       })),
@@ -714,25 +936,25 @@ export const CreateWorkflow = () => {
   );
 
   return (
-    <div className='h-full overflow-y-auto flex bg-gray-100'>
+    <div className='h-full overflow-y-auto flex bg-gray-100 pt-16'>
       <Sidebar
         workflowName={workflowName}
         workflowDescription={workflowDescription}
         autoPositioning={autoPositioning}
         lastNodeType={
           nodes.length > 0
-            ? nodes.reduce(
-                (prev: { position: { x: number } }, current: { position: { x: number } }) =>
-                  prev.position.x > current.position.x ? prev : current
+            ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
+                prev.position.x > current.position.x ? prev : current
               ).type
             : null
         }
-        onWorkflowNameChange={setWorkflowName}
-        onWorkflowDescriptionChange={setWorkflowDescription}
+        onWorkflowNameChange={handleWorkflowNameChange}
+        onWorkflowDescriptionChange={handleWorkflowDescriptionChange}
         onAutoPositioningChange={setAutoPositioning}
         onDragStart={onDragStart}
         onSaveDraft={handleSaveDraft}
         onPublishDraft={handlePublishDraft}
+        onMaximizeCanvas={handleMaximizeCanvas}
       />
 
       <Canvas
@@ -740,6 +962,7 @@ export const CreateWorkflow = () => {
         nodes={nodesWithConnectionState}
         edges={edges}
         highlightedElements={highlightedElements}
+        errorNodeIds={errorNodeIds}
         nodeTypes={nodeTypes}
         autoPositioning={autoPositioning}
         onNodesChange={onNodesChange}
@@ -779,6 +1002,17 @@ export const CreateWorkflow = () => {
         onDelete={handleNodeDelete}
         onDone={() => setSelectedNode(null)}
       />
+
+      {groupedValidationIssues.length > 0 && (
+        <ValidationErrorPanel
+          groupedIssues={groupedValidationIssues}
+          currentIndex={currentErrorIndex}
+          onClose={handleCloseValidationPanel}
+          onNext={handleNextError}
+          onPrevious={handlePreviousError}
+          onFocusError={handleFocusError}
+        />
+      )}
     </div>
   );
 };

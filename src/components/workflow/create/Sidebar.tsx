@@ -12,6 +12,7 @@ interface SidebarProps {
   onDragStart: (e: React.DragEvent, nodeType: string) => void;
   onSaveDraft: () => void;
   onPublishDraft: () => void;
+  onMaximizeCanvas: () => void;
 }
 
 export const Sidebar = ({
@@ -25,10 +26,11 @@ export const Sidebar = ({
   onDragStart,
   onSaveDraft,
   onPublishDraft,
+  onMaximizeCanvas,
 }: SidebarProps) => {
   const isEventDisabled = autoPositioning && lastNodeType === NODE_TYPES.EVENT;
   const isStateDisabled =
-    autoPositioning && (lastNodeType === NODE_TYPES.STATE || lastNodeType === NODE_TYPES.START);
+    autoPositioning && (lastNodeType === NODE_TYPES.STATUS || lastNodeType === NODE_TYPES.START);
 
   return (
     <div className='w-80 bg-white border-r border-gray-300 flex flex-col'>
@@ -102,7 +104,7 @@ export const Sidebar = ({
               : 'bg-gray-100 border-gray-300 cursor-move hover:bg-gray-200'
           }`}
           draggable={!isStateDisabled}
-          onDragStart={(e) => !isStateDisabled && onDragStart(e, NODE_TYPES.STATE)}
+          onDragStart={(e) => !isStateDisabled && onDragStart(e, NODE_TYPES.STATUS)}
           data-testid='palette-state'
         >
           <SignBadge />
@@ -129,6 +131,15 @@ export const Sidebar = ({
             />
           </button>
         </div>
+
+        {/* Maximize Canvas button */}
+        <button
+          onClick={onMaximizeCanvas}
+          className='w-full mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium'
+          data-testid='button-maximize-canvas'
+        >
+          Maximize Canvas
+        </button>
       </div>
 
       <div className='p-4 border-t border-gray-600'>
