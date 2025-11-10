@@ -1,211 +1,59 @@
-# Pipeline Management Framework - Replit Setup
+# Pipeline Management Framework
 
-## Project Overview
-This is a React + TypeScript workflow management application built with Vite, Material-UI, and React Flow. It allows users to visualize and manage workflows and entities through an intuitive single-view system with a StartNode component and advanced node type system.
-
-## Current Setup
-- **Frontend Framework**: React 18.3.1 with TypeScript
-- **Build Tool**: Vite 5.4.19
-- **UI Libraries**: Material-UI, Radix UI components, shadcn-ui, Lucide React
-- **Routing**: React Router DOM 6.30.1
-- **Visualization**: React Flow (@xyflow/react)
-- **Styling**: Tailwind CSS + SCSS (sass-embedded)
-
-## Recent Changes (November 09, 2025)
-- ✅ **UI Enhancements - Collapsible Editor & Canvas Maximization**:
-  - **NodeEditorSidebar Collapse/Expand**: Added collapsible sidebar functionality
-    - ChevronDoubleUp icon button toggles collapse state with smooth 180° rotation animation
-    - Width transitions: w-80 (expanded) ↔ w-12 (collapsed) with 300ms duration
-    - Content (form fields, buttons) conditionally hidden when collapsed
-    - Trash icon hidden in collapsed state for cleaner UI
-    - Fixed nested button bug by converting ChevronDoubleUp to pure icon component
-  - **Maximize Canvas Feature**: Added helper function to optimize graph visibility
-    - New green "Maximize Canvas" button in Sidebar below Auto-positioning toggle
-    - Implemented `maximizeCanvas()` method in Canvas component using React Flow's `fitView`
-    - Optimal settings: 0.1 padding, 500ms smooth animation, zoom range 0.5-1.5x
-    - Callback passed from CreateWorkflow via `handleMaximizeCanvas`
-    - Enhances workflow visualization by fitting all nodes with minimal padding
-- ✅ **Node Type Renaming: STATE → STATUS**:
-  - Renamed `NODE_TYPES.STATE` to `NODE_TYPES.STATUS` across entire codebase
-  - Renamed `StateNode.tsx` to `StatusNodeEdit.tsx` with matching component name
-  - Updated all node component names with "Edit" suffix: `StartNodeEdit`, `StatusNodeEdit`, `EventNodeEdit`
-  - Updated connection validation rules to use STATUS in Canvas.tsx
-  - Updated auto-positioning guards and drag handlers in Sidebar.tsx
-  - Updated wizard checks in NodeEditorSidebar.tsx for STATUS node detection
-  - Updated nodes/index.ts exports to match new component names
-  - Changed start node ID from timestamp-based to static `start-1`
-  - Fixed all TypeScript type errors using explicit `CreateWorkflowNode` types
-  - Application verified running successfully with no runtime errors
-
-## Recent Changes (October 26, 2025)
-- ✅ **Improved Node Positioning & Spacing**:
-  - **State Node Selection**: Only the circular border highlights when selected (blue, 3px) - no more div-level highlighting
-  - **Collision Detection**: Prevents nodes from overlapping with other branches
-    - hasCollision function checks 150px minimum distance between nodes
-    - findNonCollidingPosition tries up to 20 positions alternating above/below
-    - Ensures no nodes ever occupy the same position
-  - **Smart Vertical Positioning**: Nodes added via + button now alternate above and below the source
-    - Pattern: 0, +180px (below), -180px (above), +360px (below), -360px (above), etc.
-    - Base pattern maintained, but adjusted if collision detected
-    - Horizontal spacing: 350px between levels (optimized for event nodes)
-    - Vertical spacing: 180px between siblings
-  - **Auto-Center & Zoom**: New nodes automatically trigger view centering with smooth animation
-    - Uses React Flow's fitView with 0.2 padding and 300ms duration
-    - Implemented via Canvas ref and useReactFlow hook
-  - **Auto-Positioning Enhancement**: When auto-positioning is OFF and user adds node via +:
-    - Automatically enables auto-positioning
-    - Triggers graph realignment with latest state using _triggerRealign flag
-    - Uses useEffect to ensure alignment runs after state commits (prevents stale state issues)
-  - **Drag & Drop Smart Positioning**: When dragging nodes from palette (regardless of auto-positioning state):
-    - First node: placed 350px right of START node
-    - Subsequent nodes: placed 350px right of the rightmost node
-    - Vertical variation: alternates between -100px, 0px, +100px to avoid straight lines
-    - Collision detection ensures no overlaps with existing nodes
-    - Auto-centers view on newly dropped node for immediate visibility
-    - Node is automatically selected and edit sidebar opens
-- ✅ **UX Enhancements**:
-  - **Auto-Display Edit Forms**: New nodes automatically open the NodeEditorSidebar
-    - Newly created nodes are immediately selected and highlighted
-    - Edit sidebar opens instantly, allowing users to add details right away
-    - Improves workflow efficiency - no need to manually click the node to edit
-  - **Drag and Drop**: All nodes are now draggable regardless of auto-positioning setting
-    - Users can manually adjust node positions even with auto-positioning enabled
-    - Provides flexibility to customize layout while maintaining automatic organization
-  - **Smart View Fitting**: Canvas automatically centers and zooms on new nodes when added
-    - Uses React Flow's fitView with specific node for precise centering
-    - Zooms to 1.2x for clear visibility of the new node
-    - Smooth 300ms animation with 0.3 padding
-    - Automatically handles different node sizes (State, Event, Start)
-    - Performance-optimized - only triggered once per node addition
-- ✅ **Technical Improvements**:
-  - Canvas component refactored to use forwardRef and expose centerView method
-  - Added CanvasRef interface for type-safe ref operations
-  - Improved state management with flag-based triggers for graph realignment
-  - StateNode component only highlights circular border when selected (no square border/boxShadow)
-  - nodesDraggable always enabled in Canvas for better user control
-  - Plus (+) icon for adding connected nodes moved further right (40px) for better spacing
-
-## Recent Changes (October 25, 2025)
-- ✅ **Complete Codebase Refactor**: Implemented new architecture based on user's repository structure
-- ✅ **New Node Type System**: Replaced old node types with START, STATE, EVENT constants
-- ✅ **StartNode Component**: Added non-removable start node that initializes workflows
-  - Default position at (150, 200)
-  - Ghost edge indicator when no nodes connected (dashed line SVG)
-  - Supports bidirectional connections with EVENT nodes
-  - Cannot be deleted or selected for editing
-  - Ghost edge automatically shows/hides based on connection state
-- ✅ **Bidirectional Connection System**: Full manual connection support with visual feedback
-  - **Valid Connections**:
-    - State ↔ Event (bidirectional)
-    - Start ↔ Event (bidirectional)
-  - **Invalid Connections** (prevented):
-    - State ↔ State
-    - Start ↔ State
-    - Event ↔ Event
-    - Duplicate connections between same nodes
-  - **Visual Feedback**: During connection dragging
-    - Valid targets highlight in **green** (larger handles)
-    - Invalid targets show **grayed out** with reduced opacity
-    - Clear visual distinction for easier connection creation
-- ✅ **Updated Node Components**:
-  - `StartNode.tsx` - Bidirectional support, target handle, visual feedback
-  - `StateNode.tsx` - Enhanced handles with connection state styling
-  - `EventNode.tsx` - Supports connections to/from State and Start nodes
-- ✅ **SCSS Styling System**: Added CreateWorkflow.scss with:
-  - Button mixins (primary-button, secondary-button)
-  - Input field styles
-  - Transition block styling
-  - Stage node styles
-- ✅ **New Type Definitions**: Created `src/models/singleView/nodeTypes.ts`
-  - FlowNode, CreateWorkflowNode, CreateWorkflowEdge interfaces
-  - NODE_TYPES constants (START, STATE, EVENT)
-  - Connection, HierarchicalOption types
-- ✅ **Icon System**: Created `src/assets/index.tsx` with Lucide React icons
-  - ArrowSymbol, SignBadge, ChevronDoubleUp, TrashIcon, DragReorder
-- ✅ **Import Path Resolution**: Updated all imports to use `@/` alias for consistency
-- ✅ **Dependencies Added**:
-  - `sass-embedded` for SCSS support
-  - `lucide-react` for icon components
-
-## Recent Changes (October 17, 2025)
-- ✅ **Duplicate Node Prevention & Alternating Pattern Enforcement**:
-  - Enforces alternating Transition Block ↔ State pattern when auto-positioning is enabled
-  - When auto-positioning is ON:
-    - After adding Transition Block → only State palette enabled (to create connection)
-    - After adding State → only Transition Block palette enabled (to create connection)
-    - Ensures proper workflow structure with alternating nodes
-  - When auto-positioning is OFF: allows adding multiple nodes of any type
-  - Disabled palette items show visual feedback: grayed out with reduced opacity and cursor-not-allowed
-  - Implementation: lastNodeType (rightmost node by X position) passed from CreateWorkflow to Sidebar component
-
-## Recent Changes (October 11, 2025)
-- ✅ **2-Step Wizard Node Editor**:
-  - **Step 1 - Transition Panel**: Business Event(s) dropdown (hierarchical), Condition dropdown, Trigger checkboxes (Automatic/External) - Next button only
-  - **Step 2 - Details**: Business Event Name (text input), Focal Entity (dropdown), Description (textarea), Created Entities (dropdown with Advanced Select), Modified Entities (dropdown with Advanced Select) - Previous/Next buttons
-  - Rounded button styling (rounded-full)
-  - Per-node state persistence across wizard steps
-  - **Wizard Step Reset Fix**: Added useEffect to reset currentStep to TRANSITION_PANEL whenever selectedNode changes, ensuring wizard always starts on Step 1 when switching between nodes
-  - Separate state fields: businessEvent (Step 1 dropdown) vs businessEventName (Step 2 text), condition (Step 1 dropdown) vs description (Step 2 textarea)
-  - **Dynamic Next/Done Button Logic**: Button text adapts based on workflow context
-    - Transition Blocks: Step 1 always shows "Next", Step 2 shows "Next" if connected node exists, "Done" if workflow ends
-    - State Nodes: Shows "Next" if connected node exists, "Done" if workflow ends
-    - Button label matches action (no label/action mismatches)
-  - **Tag Display for Selected Items**: Visual feedback for selections
-    - Business Events: Shows selected event as green tag with ✕ remove button
-    - Created Entities: Shows all selected entities as individual green tags with remove buttons
-    - Modified Entities: Shows all selected entities as individual green tags with remove buttons
-    - Tags appear above dropdowns, clicking ✕ removes selection
-
-## Project Architecture
-### Frontend Structure
-- **Pages**: Index (landing), View, NotFound
-- **Models**: Type definitions and interfaces
-  - `src/models/singleView/nodeTypes.ts` - Core node and edge type definitions
-- **Assets**: Icon components
-  - `src/assets/index.tsx` - Lucide React icon exports
-- **Workflow Components** (Modular Structure):
-  - `src/components/workflow/create/`
-    - `CreateWorkflow.tsx` - Main orchestrating component managing all state
-    - `CreateWorkflow.scss` - SCSS styling for workflow components
-    - `Sidebar.tsx` - Workflow metadata form & component palette
-    - `Canvas.tsx` - React Flow canvas with highlighting & interactions
-    - `NodeEditorSidebar.tsx` - Node editing panel with 2-step wizard
-    - `nodes/` - Custom node components
-      - `StartNode.tsx` - Non-removable workflow start node
-      - `StateNode.tsx` - State/Stage node (circular)
-      - `EventNode.tsx` - Transition Block node (rectangular)
-  - `WorkflowManager.tsx` - Workflow visualization and viewing
-- **Utils**: Layout utilities and workflow data management
-- **Hooks**: Mobile detection and HTTP data management
-
-### Key Files
-- `vite.config.ts`: Configured for Replit with proxy bypass, `@/` alias for src
-- `src/App.tsx`: Main routing configuration (imports CreateWorkflow)
-- `src/components/workflow/create/CreateWorkflow.tsx`: Main workflow creation component
-- `src/models/singleView/nodeTypes.ts`: Type definitions for nodes, edges, and connections
-- `src/assets/index.tsx`: Icon component exports
-- `src/pages/`: Application pages (Index, View, NotFound)
-
-## Development Workflow
-- **Start Development**: Workflow "Start application" runs `npm run dev`
-- **Port**: Frontend serves on port 5000 (required for Replit)
-- **Build**: Uses `npm run build` for production builds
-- **Preview**: Uses `npm run preview` for production preview
-
-## Deployment Configuration
-- **Target**: Autoscale (stateless frontend application)
-- **Build Command**: `npm run build`
-- **Run Command**: `npm run preview`
-
-## Technical Notes
-- **Import Paths**: All imports use `@/` alias (e.g., `@/models/singleView/nodeTypes`)
-- **SCSS Deprecations**: Using modern Sass, some legacy functions (darken) show warnings
-- **Node Type Validation**: Connection validation enforces START → EVENT → STATE → EVENT pattern
-- **Ghost Edge Feature**: Start node shows visual indicator when no nodes are connected
-- **Auto-positioning Origin**: Start node is fixed at (150, 200), new nodes branch from this position
+## Overview
+This project is a React + TypeScript workflow management application designed to visualize and manage workflows and entities through an intuitive single-view system. It features a `StartNode` component and an advanced node type system for defining workflow structures. The application aims to provide a comprehensive tool for workflow creation, validation, and visualization, targeting efficient pipeline management. Key capabilities include advanced validation, interactive canvas manipulation, and a modular component architecture.
 
 ## User Preferences
 - Prefers React with TypeScript for frontend development
 - Uses modern UI component libraries (Material-UI, Radix UI, Lucide React)
 - Workflow visualization is a key feature requirement
 - SCSS for component styling with Tailwind for utility classes
+
+## System Architecture
+The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as the build tool. UI components are drawn from Material-UI, Radix UI, and shadcn-ui, with Lucide React for icons. Routing is handled by React Router DOM 6.30.1, and workflow visualization is powered by React Flow (`@xyflow/react`). Styling combines Tailwind CSS with SCSS (`sass-embedded`).
+
+**UI/UX Decisions:**
+- **Node Editor Sidebar:** Collapsible with width transitions (w-80 expanded, w-12 collapsed) and animated icon rotation.
+- **Canvas Maximization:** `fitView` functionality to optimize graph visibility with smooth animation and padding.
+- **Validation Error Panel:** Dismissible panel with distinct styling for errors (red) and warnings (yellow), click-to-focus functionality, and auto-dismissal.
+- **Error Highlighting on Canvas:** Visual feedback for validation errors using red glow for `EVENT` nodes and red borders for `STATUS` nodes.
+- **Node Positioning:** Smart vertical positioning that alternates new nodes above and below the source, collision detection to prevent overlaps, and optimized horizontal/vertical spacing.
+- **Drag & Drop:** Nodes are always draggable, with smart positioning logic for nodes dropped from the palette, including vertical variation and collision detection.
+- **Auto-Display Edit Forms:** New nodes automatically open the `NodeEditorSidebar` and are selected.
+- **Connection Visualization:** Valid connection targets highlight in green, while invalid targets are grayed out.
+- **Ghost Edge:** `StartNode` displays a dashed "ghost edge" when no nodes are connected.
+
+**Technical Implementations:**
+- **Comprehensive Workflow Validation:** Sixteen validation scenarios covering workflow metadata, node completeness, connectivity, and reachability. Supports `SAVE` (lenient) and `PUBLISH` (strict) modes.
+- **Node Type System:** Replaced old node types with `START`, `STATUS` (formerly `STATE`), and `EVENT` constants.
+- **`StartNode` Component:** A non-removable node that initializes workflows, supporting bidirectional connections with `EVENT` nodes.
+- **Bidirectional Connection System:** Enforces valid connections (e.g., `STATUS` ↔ `EVENT`, `START` ↔ `EVENT`) and prevents invalid ones (e.g., `STATUS` ↔ `STATUS`).
+- **SCSS Styling System:** Utilizes `CreateWorkflow.scss` for button mixins, input field styles, and node styling.
+- **2-Step Wizard Node Editor:** For `EVENT` nodes, guiding users through `Transition Panel` (business event, condition, trigger) and `Details` (name, focal entity, description, created/modified entities).
+- **Auto-Positioning:** Automatically enables when adding nodes via the '+' button and triggers graph realignment.
+- **Smart View Fitting:** Canvas automatically centers and zooms on new nodes with smooth animation.
+
+**Feature Specifications:**
+- **Workflow Validation:** Includes checks for empty workflow name, incomplete node details, unconnected nodes, dead-end nodes, unreachable nodes, and circular references.
+- **Node Type Renaming:** `STATE` node type renamed to `STATUS` across the codebase.
+- **Collapsible Node Editor Sidebar:** Allows users to collapse/expand the editing panel for more canvas space.
+- **Maximize Canvas Button:** Provides a quick way to fit all nodes into the view.
+- **Improved Node Positioning:** Prevents collisions and uses alternating vertical patterns for new nodes.
+- **Drag and Drop Functionality:** All nodes are draggable regardless of auto-positioning settings.
+- **Tag Display for Selected Items:** Visual feedback for selected business events, created entities, and modified entities in the editor.
+
+**System Design Choices:**
+- **Frontend Structure:** Modular design with dedicated folders for pages, models, assets, workflow components (`create/`, `nodes/`), utilities, and hooks.
+- **Key Files:** `CreateWorkflow.tsx` acts as the main orchestrating component, `nodeTypes.ts` defines core types, and `App.tsx` handles routing.
+- **Import Path Resolution:** Uses `@/` alias for consistent imports.
+- **Development Workflow:** Standard `npm run dev` for development, `npm run build` for production, and `npm run preview` for production preview.
+- **Deployment Target:** Autoscale for stateless frontend applications.
+
+## External Dependencies
+- **React Flow:** (`@xyflow/react`) for workflow visualization and interaction.
+- **Material-UI:** For UI components.
+- **Radix UI:** For additional UI components.
+- **shadcn-ui:** For UI components.
+- **Lucide React:** For icon components.
+- **React Router DOM:** For client-side routing.
+- **sass-embedded:** For SCSS support.
