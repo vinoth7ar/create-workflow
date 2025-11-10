@@ -59,6 +59,7 @@ export const CreateWorkflow = () => {
   // Validation state
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
+  const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
 
   // Get current node data with defaults - derive from nodes array to stay in sync
   const currentNode = selectedNode
@@ -367,12 +368,36 @@ export const CreateWorkflow = () => {
     return result;
   }, [workflowName, workflowDescription, nodes, edges]);
 
+  // Reset error index when validation result changes and clamp to valid range
+  useEffect(() => {
+    if (validationResult) {
+      const allIssues = [...validationResult.errors, ...validationResult.warnings];
+      if (allIssues.length > 0) {
+        setCurrentErrorIndex((prev) => Math.min(prev, allIssues.length - 1));
+      } else {
+        setCurrentErrorIndex(0);
+      }
+    } else {
+      setCurrentErrorIndex(0);
+    }
+  }, [validationResult]);
+
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
     const result = runValidation(ValidationMode.SAVE);
 
     if (!result.isValid) {
       console.log('❌ Save blocked: Validation errors found', result.errors);
+      // Auto-focus first error
+      setCurrentErrorIndex(0);
+      const allIssues = [...result.errors, ...result.warnings];
+      if (allIssues.length > 0 && allIssues[0].nodeId) {
+        const node = nodes.find((n: CreateWorkflowNode) => n.id === allIssues[0].nodeId);
+        if (node) {
+          setSelectedNode(node);
+          canvasRef.current?.centerView(allIssues[0].nodeId);
+        }
+      }
       return;
     }
 
@@ -403,6 +428,16 @@ export const CreateWorkflow = () => {
 
     if (!result.isValid) {
       console.log('❌ Publish blocked: Validation errors found', result.errors);
+      // Auto-focus first error
+      setCurrentErrorIndex(0);
+      const allIssues = [...result.errors, ...result.warnings];
+      if (allIssues.length > 0 && allIssues[0].nodeId) {
+        const node = nodes.find((n: CreateWorkflowNode) => n.id === allIssues[0].nodeId);
+        if (node) {
+          setSelectedNode(node);
+          canvasRef.current?.centerView(allIssues[0].nodeId);
+        }
+      }
       return;
     }
 
@@ -445,7 +480,39 @@ export const CreateWorkflow = () => {
   const handleCloseValidationPanel = useCallback(() => {
     setValidationResult(null);
     setErrorNodeIds(new Set());
+    setCurrentErrorIndex(0);
   }, []);
+
+  const handleNextError = useCallback(() => {
+    if (!validationResult) return;
+    const allIssues = [...validationResult.errors, ...validationResult.warnings];
+    const nextIndex = Math.min(currentErrorIndex + 1, allIssues.length - 1);
+    setCurrentErrorIndex(nextIndex);
+    if (allIssues[nextIndex]?.nodeId) {
+      handleValidationErrorClick(allIssues[nextIndex].nodeId);
+    }
+  }, [validationResult, currentErrorIndex, handleValidationErrorClick]);
+
+  const handlePreviousError = useCallback(() => {
+    if (!validationResult) return;
+    const allIssues = [...validationResult.errors, ...validationResult.warnings];
+    const prevIndex = Math.max(currentErrorIndex - 1, 0);
+    setCurrentErrorIndex(prevIndex);
+    if (allIssues[prevIndex]?.nodeId) {
+      handleValidationErrorClick(allIssues[prevIndex].nodeId);
+    }
+  }, [validationResult, currentErrorIndex, handleValidationErrorClick]);
+
+  const handleFocusError = useCallback((index: number) => {
+    if (!validationResult) return;
+    const allIssues = [...validationResult.errors, ...validationResult.warnings];
+    if (index >= 0 && index < allIssues.length) {
+      setCurrentErrorIndex(index);
+      if (allIssues[index]?.nodeId) {
+        handleValidationErrorClick(allIssues[index].nodeId);
+      }
+    }
+  }, [validationResult, handleValidationErrorClick]);
 
   const handleNodeDelete = () => {
     if (selectedNode) {
@@ -790,7 +857,7 @@ export const CreateWorkflow = () => {
   );
 
   return (
-    <div className='h-full overflow-y-auto flex bg-gray-100'>
+    <div className='h-full overflow-y-auto flex bg-gray-100 pt-16'>
       <Sidebar
         workflowName={workflowName}
         workflowDescription={workflowDescription}
@@ -861,8 +928,11 @@ export const CreateWorkflow = () => {
         <ValidationErrorPanel
           errors={validationResult.errors}
           warnings={validationResult.warnings}
+          currentIndex={currentErrorIndex}
           onClose={handleCloseValidationPanel}
-          onErrorClick={handleValidationErrorClick}
+          onNext={handleNextError}
+          onPrevious={handlePreviousError}
+          onFocusError={handleFocusError}
         />
       )}
     </div>

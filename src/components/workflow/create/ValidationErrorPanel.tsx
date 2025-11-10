@@ -1,110 +1,147 @@
-import { AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { ValidationError, ValidationErrorSeverity } from '@/utils/workflowValidation';
+import { AlertCircle, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ValidationError } from '@/utils/workflowValidation';
 
 interface ValidationErrorPanelProps {
   errors: ValidationError[];
   warnings: ValidationError[];
+  currentIndex: number;
   onClose: () => void;
-  onErrorClick: (nodeId?: string) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onFocusError: (index: number) => void;
 }
 
 export const ValidationErrorPanel = ({
   errors,
   warnings,
+  currentIndex,
   onClose,
-  onErrorClick,
+  onNext,
+  onPrevious,
+  onFocusError,
 }: ValidationErrorPanelProps) => {
+  const allIssues = [...errors, ...warnings];
   const hasErrors = errors.length > 0;
-  const hasWarnings = warnings.length > 0;
+  const totalCount = allIssues.length;
 
-  if (!hasErrors && !hasWarnings) return null;
+  if (totalCount === 0) return null;
+
+  const currentIssue = allIssues[currentIndex];
+  const isError = currentIndex < errors.length;
 
   return (
-    <div className='fixed bottom-4 right-4 z-50 w-96 max-h-[500px] bg-white rounded-lg shadow-2xl border-2 border-gray-200 flex flex-col'>
+    <div className='fixed top-0 left-0 right-0 z-50 shadow-lg border-b-2'>
       <div
-        className={`px-4 py-3 rounded-t-lg flex items-center justify-between ${
-          hasErrors ? 'bg-red-600' : 'bg-yellow-600'
-        }`}
+        className={`${
+          isError
+            ? 'bg-gradient-to-r from-red-600 to-red-700'
+            : 'bg-gradient-to-r from-yellow-600 to-yellow-700'
+        } transition-all duration-300`}
       >
-        <div className='flex items-center gap-2'>
-          {hasErrors ? (
-            <AlertCircle className='w-5 h-5 text-white' />
-          ) : (
-            <AlertTriangle className='w-5 h-5 text-white' />
+        <div className='max-w-7xl mx-auto px-6 py-4'>
+          <div className='flex items-center justify-between gap-4'>
+            <div className='flex items-center gap-3 flex-1'>
+              {isError ? (
+                <AlertCircle className='w-6 h-6 text-white flex-shrink-0' />
+              ) : (
+                <AlertTriangle className='w-6 h-6 text-white flex-shrink-0' />
+              )}
+              
+              <div className='flex-1 min-w-0'>
+                <div className='flex items-center gap-3 mb-1'>
+                  <h3 className='text-white font-bold text-lg'>
+                    {isError ? 'Validation Error' : 'Validation Warning'}
+                  </h3>
+                  <span className='px-2.5 py-0.5 bg-white/20 rounded-full text-white text-xs font-semibold backdrop-blur-sm'>
+                    {currentIndex + 1} of {totalCount}
+                  </span>
+                </div>
+                
+                <p className='text-white/95 text-sm font-medium'>
+                  {currentIssue.message}
+                </p>
+                
+                {currentIssue.nodeName && (
+                  <p className='text-white/80 text-xs mt-1'>
+                    Node: {currentIssue.nodeName}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className='flex items-center gap-2'>
+              {totalCount > 1 && (
+                <div className='flex items-center gap-1 bg-white/10 rounded-lg p-1 backdrop-blur-sm'>
+                  <button
+                    onClick={onPrevious}
+                    disabled={currentIndex === 0}
+                    className='p-1.5 rounded text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+                    data-testid='button-previous-error'
+                    title='Previous error'
+                  >
+                    <ChevronLeft className='w-5 h-5' />
+                  </button>
+                  
+                  <div className='px-2 flex gap-1'>
+                    {allIssues.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => onFocusError(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === currentIndex
+                            ? 'bg-white scale-125'
+                            : 'bg-white/40 hover:bg-white/60'
+                        }`}
+                        data-testid={`button-error-dot-${index}`}
+                        title={`Go to ${index < errors.length ? 'error' : 'warning'} ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={onNext}
+                    disabled={currentIndex === totalCount - 1}
+                    className='p-1.5 rounded text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+                    data-testid='button-next-error'
+                    title='Next error'
+                  >
+                    <ChevronRight className='w-5 h-5' />
+                  </button>
+                </div>
+              )}
+              
+              <button
+                onClick={onClose}
+                className='p-1.5 rounded text-white hover:bg-white/20 transition-all ml-2'
+                data-testid='button-close-validation'
+                title='Close'
+              >
+                <X className='w-5 h-5' />
+              </button>
+            </div>
+          </div>
+
+          {hasErrors && currentIndex >= errors.length && (
+            <div className='mt-3 pt-3 border-t border-white/20'>
+              <p className='text-white/90 text-xs'>
+                ✓ All {errors.length} error{errors.length !== 1 ? 's' : ''} fixed! 
+                {warnings.length > 0 && (
+                  <span className='ml-1'>
+                    Review {warnings.length} warning{warnings.length !== 1 ? 's' : ''} (optional).
+                  </span>
+                )}
+              </p>
+            </div>
           )}
-          <h3 className='text-white font-semibold'>
-            {hasErrors ? 'Validation Errors' : 'Validation Warnings'}
-          </h3>
+          
+          {hasErrors && currentIndex < errors.length && (
+            <div className='mt-3 pt-3 border-t border-white/20'>
+              <p className='text-white/90 text-xs'>
+                Fix this error to continue. {errors.length - currentIndex - 1} more error{errors.length - currentIndex - 1 !== 1 ? 's' : ''} remaining.
+              </p>
+            </div>
+          )}
         </div>
-        <button
-          onClick={onClose}
-          className='text-white hover:text-gray-200 transition-colors'
-          data-testid='button-close-validation'
-        >
-          <X className='w-5 h-5' />
-        </button>
-      </div>
-
-      <div className='overflow-y-auto flex-1 p-4 space-y-3'>
-        {hasErrors && (
-          <div className='space-y-2'>
-            <div className='flex items-center gap-2 mb-2'>
-              <AlertCircle className='w-4 h-4 text-red-600' />
-              <h4 className='text-sm font-semibold text-red-600'>
-                Errors ({errors.length})
-              </h4>
-            </div>
-            {errors.map((error, index) => (
-              <div
-                key={`error-${index}`}
-                onClick={() => error.nodeId && onErrorClick(error.nodeId)}
-                className={`p-3 bg-red-50 border border-red-200 rounded text-sm ${
-                  error.nodeId ? 'cursor-pointer hover:bg-red-100' : ''
-                }`}
-                data-testid={`error-item-${index}`}
-              >
-                <p className='text-red-800 font-medium'>{error.message}</p>
-                {error.nodeName && (
-                  <p className='text-red-600 text-xs mt-1'>Node: {error.nodeName}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {hasWarnings && (
-          <div className='space-y-2'>
-            <div className='flex items-center gap-2 mb-2'>
-              <AlertTriangle className='w-4 h-4 text-yellow-600' />
-              <h4 className='text-sm font-semibold text-yellow-600'>
-                Warnings ({warnings.length})
-              </h4>
-            </div>
-            {warnings.map((warning, index) => (
-              <div
-                key={`warning-${index}`}
-                onClick={() => warning.nodeId && onErrorClick(warning.nodeId)}
-                className={`p-3 bg-yellow-50 border border-yellow-200 rounded text-sm ${
-                  warning.nodeId ? 'cursor-pointer hover:bg-yellow-100' : ''
-                }`}
-                data-testid={`warning-item-${index}`}
-              >
-                <p className='text-yellow-800 font-medium'>{warning.message}</p>
-                {warning.nodeName && (
-                  <p className='text-yellow-600 text-xs mt-1'>Node: {warning.nodeName}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className='px-4 py-3 bg-gray-50 rounded-b-lg border-t border-gray-200'>
-        <p className='text-xs text-gray-600'>
-          {hasErrors
-            ? 'Fix all errors before saving or publishing your workflow.'
-            : 'These warnings are optional but recommended for best practices.'}
-        </p>
       </div>
     </div>
   );
