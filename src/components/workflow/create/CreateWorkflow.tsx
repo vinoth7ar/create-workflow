@@ -19,9 +19,19 @@ import {
   ValidationMode,
   ValidationError,
   ValidationResult,
+  ValidationErrorSeverity,
 } from '@/utils/workflowValidation';
 
 const START_POSITION = { x: 150, y: 200 };
+
+// Grouped validation issues interface
+export interface GroupedValidationIssue {
+  nodeId?: string;
+  nodeName?: string;
+  severity: ValidationErrorSeverity;
+  summary: string;
+  issues: ValidationError[];
+}
 
 export const CreateWorkflow = () => {
   // ===================== STATE MANAGEMENT ====================
@@ -368,19 +378,69 @@ export const CreateWorkflow = () => {
     return result;
   }, [workflowName, workflowDescription, nodes, edges]);
 
-  // Reset error index when validation result changes and clamp to valid range
+  // Group validation errors by node - one error message per node
+  const groupedValidationIssues = useMemo((): GroupedValidationIssue[] => {
+    if (!validationResult) return [];
+
+    const allIssues = [...validationResult.errors, ...validationResult.warnings];
+    const groups = new Map<string, ValidationError[]>();
+
+    // Group issues by nodeId (undefined for workflow-level errors)
+    allIssues.forEach(issue => {
+      const key = issue.nodeId || 'workflow';
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(issue);
+    });
+
+    // Convert to array of GroupedValidationIssue
+    return Array.from(groups.entries()).map(([key, issues]) => {
+      const firstIssue = issues[0];
+      const hasErrors = issues.some(i => i.severity === ValidationErrorSeverity.ERROR);
+      const severity = hasErrors ? ValidationErrorSeverity.ERROR : ValidationErrorSeverity.WARNING;
+      
+      const issueCount = issues.length;
+      const errorCount = issues.filter(i => i.severity === ValidationErrorSeverity.ERROR).length;
+      const warningCount = issues.filter(i => i.severity === ValidationErrorSeverity.WARNING).length;
+      
+      let summary = '';
+      if (key === 'workflow') {
+        summary = issueCount === 1 ? issues[0].message : `Review workflow settings (${issueCount} ${issueCount === 1 ? 'issue' : 'issues'})`;
+      } else {
+        const nodeName = firstIssue.nodeName || 'Unnamed Node';
+        if (errorCount > 0 && warningCount > 0) {
+          summary = `${nodeName} has ${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}`;
+        } else if (issueCount === 1) {
+          summary = issues[0].message;
+        } else {
+          summary = `${nodeName} has ${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}`;
+        }
+      }
+
+      return {
+        nodeId: key === 'workflow' ? undefined : firstIssue.nodeId,
+        nodeName: key === 'workflow' ? undefined : firstIssue.nodeName,
+        severity,
+        summary,
+        issues,
+      };
+    });
+  }, [validationResult]);
+
+  // Reset error index to 0 when new validation results arrive
   useEffect(() => {
     if (validationResult) {
-      const allIssues = [...validationResult.errors, ...validationResult.warnings];
-      if (allIssues.length > 0) {
-        setCurrentErrorIndex((prev) => Math.min(prev, allIssues.length - 1));
-      } else {
-        setCurrentErrorIndex(0);
-      }
-    } else {
       setCurrentErrorIndex(0);
     }
   }, [validationResult]);
+
+  // Auto-focus first error when validation runs
+  useEffect(() => {
+    if (groupedValidationIssues.length > 0 && groupedValidationIssues[0].nodeId) {
+      handleValidationErrorClick(groupedValidationIssues[0].nodeId);
+    }
+  }, [validationResult]); // Only run when validation result changes
 
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
@@ -388,16 +448,8 @@ export const CreateWorkflow = () => {
 
     if (!result.isValid) {
       console.log('❌ Save blocked: Validation errors found', result.errors);
-      // Auto-focus first error
+      // Auto-focus first error - will be handled by the effect
       setCurrentErrorIndex(0);
-      const allIssues = [...result.errors, ...result.warnings];
-      if (allIssues.length > 0 && allIssues[0].nodeId) {
-        const node = nodes.find((n: CreateWorkflowNode) => n.id === allIssues[0].nodeId);
-        if (node) {
-          setSelectedNode(node);
-          canvasRef.current?.centerView(allIssues[0].nodeId);
-        }
-      }
       return;
     }
 
@@ -428,16 +480,8 @@ export const CreateWorkflow = () => {
 
     if (!result.isValid) {
       console.log('❌ Publish blocked: Validation errors found', result.errors);
-      // Auto-focus first error
+      // Auto-focus first error - will be handled by the effect
       setCurrentErrorIndex(0);
-      const allIssues = [...result.errors, ...result.warnings];
-      if (allIssues.length > 0 && allIssues[0].nodeId) {
-        const node = nodes.find((n: CreateWorkflowNode) => n.id === allIssues[0].nodeId);
-        if (node) {
-          setSelectedNode(node);
-          canvasRef.current?.centerView(allIssues[0].nodeId);
-        }
-      }
       return;
     }
 
@@ -484,35 +528,29 @@ export const CreateWorkflow = () => {
   }, []);
 
   const handleNextError = useCallback(() => {
-    if (!validationResult) return;
-    const allIssues = [...validationResult.errors, ...validationResult.warnings];
-    const nextIndex = Math.min(currentErrorIndex + 1, allIssues.length - 1);
+    const nextIndex = Math.min(currentErrorIndex + 1, groupedValidationIssues.length - 1);
     setCurrentErrorIndex(nextIndex);
-    if (allIssues[nextIndex]?.nodeId) {
-      handleValidationErrorClick(allIssues[nextIndex].nodeId);
+    if (groupedValidationIssues[nextIndex]?.nodeId) {
+      handleValidationErrorClick(groupedValidationIssues[nextIndex].nodeId);
     }
-  }, [validationResult, currentErrorIndex, handleValidationErrorClick]);
+  }, [groupedValidationIssues, currentErrorIndex, handleValidationErrorClick]);
 
   const handlePreviousError = useCallback(() => {
-    if (!validationResult) return;
-    const allIssues = [...validationResult.errors, ...validationResult.warnings];
     const prevIndex = Math.max(currentErrorIndex - 1, 0);
     setCurrentErrorIndex(prevIndex);
-    if (allIssues[prevIndex]?.nodeId) {
-      handleValidationErrorClick(allIssues[prevIndex].nodeId);
+    if (groupedValidationIssues[prevIndex]?.nodeId) {
+      handleValidationErrorClick(groupedValidationIssues[prevIndex].nodeId);
     }
-  }, [validationResult, currentErrorIndex, handleValidationErrorClick]);
+  }, [groupedValidationIssues, currentErrorIndex, handleValidationErrorClick]);
 
   const handleFocusError = useCallback((index: number) => {
-    if (!validationResult) return;
-    const allIssues = [...validationResult.errors, ...validationResult.warnings];
-    if (index >= 0 && index < allIssues.length) {
+    if (index >= 0 && index < groupedValidationIssues.length) {
       setCurrentErrorIndex(index);
-      if (allIssues[index]?.nodeId) {
-        handleValidationErrorClick(allIssues[index].nodeId);
+      if (groupedValidationIssues[index]?.nodeId) {
+        handleValidationErrorClick(groupedValidationIssues[index].nodeId);
       }
     }
-  }, [validationResult, handleValidationErrorClick]);
+  }, [groupedValidationIssues, handleValidationErrorClick]);
 
   const handleNodeDelete = () => {
     if (selectedNode) {
@@ -924,10 +962,9 @@ export const CreateWorkflow = () => {
         onDone={() => setSelectedNode(null)}
       />
 
-      {validationResult && (
+      {groupedValidationIssues.length > 0 && (
         <ValidationErrorPanel
-          errors={validationResult.errors}
-          warnings={validationResult.warnings}
+          groupedIssues={groupedValidationIssues}
           currentIndex={currentErrorIndex}
           onClose={handleCloseValidationPanel}
           onNext={handleNextError}
