@@ -15,7 +15,7 @@ The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as
 **UI/UX Decisions:**
 - **Node Editor Sidebar:** Collapsible with width transitions (w-80 expanded, w-12 collapsed) and animated icon rotation.
 - **Canvas Maximization:** `fitView` functionality to optimize graph visibility with smooth animation and padding.
-- **Validation Error Panel:** Dismissible panel with distinct styling for errors (red) and warnings (yellow), click-to-focus functionality, and auto-dismissal.
+- **Validation Error Banner:** Fixed top banner with guided one-by-one error navigation, progress indicator (Error 1 of 5), Previous/Next buttons, dot navigation for jumping to specific errors, auto-focus on first error, and distinct styling (red for errors, yellow for warnings).
 - **Error Highlighting on Canvas:** Visual feedback for validation errors using red glow for `EVENT` nodes and red borders for `STATUS` nodes.
 - **Node Positioning:** Smart vertical positioning that alternates new nodes above and below the source, collision detection to prevent overlaps, and optimized horizontal/vertical spacing.
 - **Drag & Drop:** Nodes are always draggable, with smart positioning logic for nodes dropped from the palette, including vertical variation and collision detection.
@@ -24,7 +24,7 @@ The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as
 - **Ghost Edge:** `StartNode` displays a dashed "ghost edge" when no nodes are connected.
 
 **Technical Implementations:**
-- **Comprehensive Workflow Validation:** Sixteen validation scenarios covering workflow metadata, node completeness, connectivity, and reachability. Supports `SAVE` (lenient) and `PUBLISH` (strict) modes.
+- **Comprehensive Workflow Validation:** Sixteen validation scenarios covering workflow metadata, node completeness, connectivity, and reachability. Supports `SAVE` (lenient) and `PUBLISH` (strict) modes with guided error navigation through top banner.
 - **Node Type System:** Replaced old node types with `START`, `STATUS` (formerly `STATE`), and `EVENT` constants.
 - **`StartNode` Component:** A non-removable node that initializes workflows, supporting bidirectional connections with `EVENT` nodes.
 - **Bidirectional Connection System:** Enforces valid connections (e.g., `STATUS` ↔ `EVENT`, `START` ↔ `EVENT`) and prevents invalid ones (e.g., `STATUS` ↔ `STATUS`).
