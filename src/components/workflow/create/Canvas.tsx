@@ -19,6 +19,7 @@ interface CanvasProps {
     nodeIds?: string[];
     edgeIds: string[];
   };
+  errorNodeIds?: Set<string>;
   nodeTypes: any;
   autoPositioning: boolean;
   onNodesChange: any;
@@ -43,6 +44,7 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
   nodes,
   edges,
   highlightedElements,
+  errorNodeIds = new Set(),
   nodeTypes,
   autoPositioning,
   onNodesChange,
@@ -126,19 +128,27 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
 
   return (
     <ReactFlow
-          nodes={nodes.map((node) => ({
-            ...node,
-            style:
-              highlightedElements.nodeId === node.id ||
-              highlightedElements.nodeIds?.includes(node.id)
-                ? {
-                    ...node.style,
-                    // Only apply boxShadow for non-STATUS nodes (STATUS nodes handle their own selection border)
-                    boxShadow: node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)',
-                    transition: 'all 0.3s ease',
-                  }
-                : { ...node.style, transition: 'all 0.3s ease' },
-          }))}
+          nodes={nodes.map((node: any) => {
+            const isHighlighted = highlightedElements.nodeId === node.id || highlightedElements.nodeIds?.includes(node.id);
+            const hasError = errorNodeIds.has(node.id);
+            
+            let boxShadowStyle = node.style?.boxShadow;
+            if (hasError) {
+              boxShadowStyle = node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 4px #ef4444, 0 0 30px rgba(239, 68, 68, 0.6)';
+            } else if (isHighlighted) {
+              boxShadowStyle = node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)';
+            }
+            
+            return {
+              ...node,
+              style: {
+                ...node.style,
+                boxShadow: boxShadowStyle,
+                ...(hasError && node.type === NODE_TYPES.STATUS ? { border: '4px solid #ef4444' } : {}),
+                transition: 'all 0.3s ease',
+              },
+            };
+          })}
           edges={edges.map((edge) => ({
             ...edge,
             style: highlightedElements.edgeIds.includes(edge.id)

@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { addEdge, useNodesState, useEdgesState } from '@xyflow/react';
 import { Canvas, CanvasRef } from './Canvas';
 import { NodeEditorSidebar } from './NodeEditorSidebar';
+import { ValidationErrorPanel } from './ValidationErrorPanel';
 import StartNodeEdit from './nodes/StartNodeEdit';
 import StatusNodeEdit from './nodes/StatusNodeEdit';
 import EventNodeEdit from './nodes/EventNodeEdit';
@@ -13,6 +14,12 @@ import {
   FlowNode,
   NODE_TYPES,
 } from '@/models/singleView/nodeTypes';
+import {
+  validateWorkflow,
+  ValidationMode,
+  ValidationError,
+  ValidationResult,
+} from '@/utils/workflowValidation';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -48,6 +55,10 @@ export const CreateWorkflow = () => {
 
   // Connection state for dynamic handle styling
   const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
+
+  // Validation state
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
 
   // Get current node data with defaults - derive from nodes array to stay in sync
   const currentNode = selectedNode
@@ -333,8 +344,38 @@ export const CreateWorkflow = () => {
     setNodes(updatedNodes);
   }, [nodes, edges, autoPositioning, setNodes]);
 
+  // ==================== VALIDATION ====================
+  const runValidation = useCallback((mode: ValidationMode) => {
+    const result = validateWorkflow(
+      workflowName,
+      workflowDescription,
+      nodes as CreateWorkflowNode[],
+      edges as CreateWorkflowEdge[],
+      mode
+    );
+
+    setValidationResult(result);
+
+    const errorIds = new Set<string>();
+    result.errors.forEach(err => {
+      if (err.nodeId) {
+        errorIds.add(err.nodeId);
+      }
+    });
+    setErrorNodeIds(errorIds);
+
+    return result;
+  }, [workflowName, workflowDescription, nodes, edges]);
+
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
+    const result = runValidation(ValidationMode.SAVE);
+
+    if (!result.isValid) {
+      console.log('❌ Save blocked: Validation errors found', result.errors);
+      return;
+    }
+
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -351,10 +392,20 @@ export const CreateWorkflow = () => {
       })),
       autoPositioning,
     };
-    console.log('Save draft:', workflowData);
+    
+    console.log('✅ Save draft successful:', workflowData);
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
   };
 
   const handlePublishDraft = () => {
+    const result = runValidation(ValidationMode.PUBLISH);
+
+    if (!result.isValid) {
+      console.log('❌ Publish blocked: Validation errors found', result.errors);
+      return;
+    }
+
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -371,12 +422,30 @@ export const CreateWorkflow = () => {
       })),
       status: 'published',
     };
-    console.log('Publish workflow:', workflowData);
+    
+    console.log('✅ Publish successful:', workflowData);
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
   };
 
   const handleMaximizeCanvas = () => {
     canvasRef.current?.maximizeCanvas();
   };
+
+  const handleValidationErrorClick = useCallback((nodeId?: string) => {
+    if (!nodeId) return;
+
+    const node = nodes.find((n: CreateWorkflowNode) => n.id === nodeId);
+    if (node) {
+      setSelectedNode(node);
+      canvasRef.current?.centerView(nodeId);
+    }
+  }, [nodes]);
+
+  const handleCloseValidationPanel = useCallback(() => {
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
+  }, []);
 
   const handleNodeDelete = () => {
     if (selectedNode) {
@@ -747,6 +816,7 @@ export const CreateWorkflow = () => {
         nodes={nodesWithConnectionState}
         edges={edges}
         highlightedElements={highlightedElements}
+        errorNodeIds={errorNodeIds}
         nodeTypes={nodeTypes}
         autoPositioning={autoPositioning}
         onNodesChange={onNodesChange}
@@ -786,6 +856,15 @@ export const CreateWorkflow = () => {
         onDelete={handleNodeDelete}
         onDone={() => setSelectedNode(null)}
       />
+
+      {validationResult && (
+        <ValidationErrorPanel
+          errors={validationResult.errors}
+          warnings={validationResult.warnings}
+          onClose={handleCloseValidationPanel}
+          onErrorClick={handleValidationErrorClick}
+        />
+      )}
     </div>
   );
 };
