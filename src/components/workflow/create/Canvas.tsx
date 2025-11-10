@@ -132,20 +132,23 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(({
             const isHighlighted = highlightedElements.nodeId === node.id || highlightedElements.nodeIds?.includes(node.id);
             const hasError = errorNodeIds.has(node.id);
             
-            let boxShadowStyle = node.style?.boxShadow;
+            let styleOverrides: any = {
+              transition: 'all 0.3s ease',
+            };
+            
             if (hasError) {
-              boxShadowStyle = node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 4px #ef4444, 0 0 30px rgba(239, 68, 68, 0.6)';
+              // EVENT nodes: rectangular border, STATUS nodes: circular border
+              styleOverrides.boxShadow = 'none';
+              styleOverrides.border = '4px solid #ef4444';
             } else if (isHighlighted) {
-              boxShadowStyle = node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)';
+              styleOverrides.boxShadow = node.type === NODE_TYPES.STATUS ? 'none' : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)';
             }
             
             return {
               ...node,
               style: {
                 ...node.style,
-                boxShadow: boxShadowStyle,
-                ...(hasError && node.type === NODE_TYPES.STATUS ? { border: '4px solid #ef4444' } : {}),
-                transition: 'all 0.3s ease',
+                ...styleOverrides,
               },
             };
           })}

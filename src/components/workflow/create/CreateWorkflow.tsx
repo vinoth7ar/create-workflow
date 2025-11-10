@@ -37,6 +37,19 @@ export const CreateWorkflow = () => {
   // ===================== STATE MANAGEMENT ====================
   const [workflowName, setWorkflowName] = useState('Hypo Loan Position');
   const [workflowDescription, setWorkflowDescription] = useState('');
+  
+  // Wrapper functions to auto-dismiss error banner when user edits workflow metadata
+  const handleWorkflowNameChange = useCallback((name: string) => {
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
+    setWorkflowName(name);
+  }, []);
+  
+  const handleWorkflowDescriptionChange = useCallback((description: string) => {
+    setValidationResult(null);
+    setErrorNodeIds(new Set());
+    setWorkflowDescription(description);
+  }, []);
   const [autoPositioning, setAutoPositioning] = useState(true);
   const [highlightedElements, setHighlightedElements] = useState<{
     nodeId?: string;
@@ -102,6 +115,10 @@ export const CreateWorkflow = () => {
   // Update node data helper
   const updateNodeData = useCallback(
     (nodeId: string, updates: Record<string, any>) => {
+      // Auto-dismiss error banner when user starts editing
+      setValidationResult(null);
+      setErrorNodeIds(new Set());
+      
       setNodes((nds: CreateWorkflowNode[]) =>
         nds.map((node: CreateWorkflowNode) =>
           node.id === nodeId ? { ...node, data: { ...node.data, ...updates } } : node
@@ -178,6 +195,10 @@ export const CreateWorkflow = () => {
 
   const addConnectedNode = useCallback(
     (sourceId: string, nodeType: string) => {
+      // Auto-dismiss error banner when user adds a new node
+      setValidationResult(null);
+      setErrorNodeIds(new Set());
+      
       const sourceNode = nodes.find((n: { id: string }) => n.id === sourceId);
       if (!sourceNode) return;
 
@@ -408,7 +429,23 @@ export const CreateWorkflow = () => {
       if (key === 'workflow') {
         summary = issueCount === 1 ? issues[0].message : `Review workflow settings (${issueCount} ${issueCount === 1 ? 'issue' : 'issues'})`;
       } else {
-        const nodeName = firstIssue.nodeName || 'Unnamed Node';
+        // Use actual node name or generate default based on node type
+        let nodeName = firstIssue.nodeName;
+        if (!nodeName) {
+          const node = nodes.find(n => n.id === firstIssue.nodeId);
+          if (node) {
+            if (node.type === NODE_TYPES.STATUS) {
+              nodeName = node.data.label || 'Stage';
+            } else if (node.type === NODE_TYPES.EVENT) {
+              nodeName = node.data.label || 'Transition Block';
+            } else {
+              nodeName = node.data.label || 'Node';
+            }
+          } else {
+            nodeName = 'Node';
+          }
+        }
+        
         if (errorCount > 0 && warningCount > 0) {
           summary = `${nodeName} has ${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}`;
         } else if (issueCount === 1) {
@@ -746,6 +783,10 @@ export const CreateWorkflow = () => {
       const type = event.dataTransfer.getData('application/reactflow');
       if (!type) return;
 
+      // Auto-dismiss error banner when user adds a node via drag-and-drop
+      setValidationResult(null);
+      setErrorNodeIds(new Set());
+
       const { id, label } = generateUniqueId(type, nodes);
       
       let position;
@@ -907,8 +948,8 @@ export const CreateWorkflow = () => {
               ).type
             : null
         }
-        onWorkflowNameChange={setWorkflowName}
-        onWorkflowDescriptionChange={setWorkflowDescription}
+        onWorkflowNameChange={handleWorkflowNameChange}
+        onWorkflowDescriptionChange={handleWorkflowDescriptionChange}
         onAutoPositioningChange={setAutoPositioning}
         onDragStart={onDragStart}
         onSaveDraft={handleSaveDraft}
