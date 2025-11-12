@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { addEdge, useNodesState, useEdgesState } from '@xyflow/react';
 import { Canvas, CanvasRef } from './Canvas';
 import { NodeEditorSidebar } from './NodeEditorSidebar';
-import { ValidationErrorPanel } from './ValidationErrorPanel';
 import StartNodeEdit from './nodes/StartNodeEdit';
 import StatusNodeEdit from './nodes/StatusNodeEdit';
 import EventNodeEdit from './nodes/EventNodeEdit';
@@ -13,43 +12,14 @@ import {
   CreateWorkflowNode,
   FlowNode,
   NODE_TYPES,
-} from '@/models/singleView/nodeTypes';
-import {
-  validateWorkflow,
-  ValidationMode,
-  ValidationError,
-  ValidationResult,
-  ValidationErrorSeverity,
-} from '@/utils/workflowValidation';
+} from 'src/models/singleView/nodeTypes';
 
 const START_POSITION = { x: 150, y: 200 };
 
-// Grouped validation issues interface
-export interface GroupedValidationIssue {
-  nodeId?: string;
-  nodeName?: string;
-  severity: ValidationErrorSeverity;
-  summary: string;
-  issues: ValidationError[];
-}
-
 export const CreateWorkflow = () => {
-  // ===================== STATE MANAGEMENT ====================
+  // ==================== STATE MANAGEMENT ====================
   const [workflowName, setWorkflowName] = useState('Hypo Loan Position');
   const [workflowDescription, setWorkflowDescription] = useState('');
-  
-  // Wrapper functions to auto-dismiss error banner when user edits workflow metadata
-  const handleWorkflowNameChange = useCallback((name: string) => {
-    setValidationResult(null);
-    setErrorNodeIds(new Set());
-    setWorkflowName(name);
-  }, []);
-  
-  const handleWorkflowDescriptionChange = useCallback((description: string) => {
-    setValidationResult(null);
-    setErrorNodeIds(new Set());
-    setWorkflowDescription(description);
-  }, []);
   const [autoPositioning, setAutoPositioning] = useState(true);
   const [highlightedElements, setHighlightedElements] = useState<{
     nodeId?: string;
@@ -57,9 +27,9 @@ export const CreateWorkflow = () => {
     edgeIds: string[];
   }>({ edgeIds: [] });
 
-  // initiate a default, non-removable start node
+  // initiate a default, none removable start node
   const startNodeRef = useRef<CreateWorkflowNode>({
-    id: `${NODE_TYPES.START}-1`,
+    id: `start-node-${Date.now()}`,
     type: NODE_TYPES.START,
     position: START_POSITION,
     data: {
@@ -78,11 +48,6 @@ export const CreateWorkflow = () => {
 
   // Connection state for dynamic handle styling
   const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
-
-  // Validation state
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const [errorNodeIds, setErrorNodeIds] = useState<Set<string>>(new Set());
-  const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
 
   // Get current node data with defaults - derive from nodes array to stay in sync
   const currentNode = selectedNode
@@ -115,12 +80,8 @@ export const CreateWorkflow = () => {
   // Update node data helper
   const updateNodeData = useCallback(
     (nodeId: string, updates: Record<string, any>) => {
-      // Auto-dismiss error banner when user starts editing
-      setValidationResult(null);
-      setErrorNodeIds(new Set());
-      
       setNodes((nds: CreateWorkflowNode[]) =>
-        nds.map((node: CreateWorkflowNode) =>
+        nds.map((node: { id: string; data: any }) =>
           node.id === nodeId ? { ...node, data: { ...node.data, ...updates } } : node
         )
       );
@@ -149,22 +110,25 @@ export const CreateWorkflow = () => {
   }, []);
 
   // Check if a position collides with existing nodes
-  const hasCollision = useCallback((position: { x: number; y: number }, existingNodes: CreateWorkflowNode[]) => {
-    const minDistance = 150; // Minimum distance between nodes to avoid overlap
-    
-    return existingNodes.some((node) => {
-      const dx = Math.abs(node.position.x - position.x);
-      const dy = Math.abs(node.position.y - position.y);
-      return dx < minDistance && dy < minDistance;
-    });
-  }, []);
+  const hasCollision = useCallback(
+    (position: { x: number; y: number }, existingNodes: CreateWorkflowNode[]) => {
+      const minDistance = 150; // Minimum distance between nodes to avoid overlap
+
+      return existingNodes.some((node) => {
+        const dx = Math.abs(node.position.x - position.x);
+        const dy = Math.abs(node.position.y - position.y);
+        return dx < minDistance && dy < minDistance;
+      });
+    },
+    []
+  );
 
   // Find a non-colliding position for a new node
   const findNonCollidingPosition = useCallback(
     (basePosition: { x: number; y: number }, existingNodes: CreateWorkflowNode[]) => {
-      const verticalSpacing = 180;
+      const verticalSpacing = 250;
       const maxAttempts = 20;
-      
+
       // Try the base position first
       if (!hasCollision(basePosition, existingNodes)) {
         return basePosition;
@@ -173,13 +137,13 @@ export const CreateWorkflow = () => {
       // Try alternating above and below with increasing distances
       for (let attempt = 1; attempt < maxAttempts; attempt++) {
         const offset = attempt * verticalSpacing;
-        
+
         // Try below
         const positionBelow = { ...basePosition, y: basePosition.y + offset };
         if (!hasCollision(positionBelow, existingNodes)) {
           return positionBelow;
         }
-        
+
         // Try above
         const positionAbove = { ...basePosition, y: basePosition.y - offset };
         if (!hasCollision(positionAbove, existingNodes)) {
@@ -195,14 +159,12 @@ export const CreateWorkflow = () => {
 
   const addConnectedNode = useCallback(
     (sourceId: string, nodeType: string) => {
-      // Auto-dismiss error banner when user adds a new node
-      setValidationResult(null);
-      setErrorNodeIds(new Set());
-      
       const sourceNode = nodes.find((n: { id: string }) => n.id === sourceId);
       if (!sourceNode) return;
 
       const { id, label } = generateUniqueId(nodeType, nodes);
+      // event node is big so we give it extra distance from event node to the target node
+      const extraGap = sourceNode.type === NODE_TYPES.EVENT ? 300 : 200;
 
       // If auto-positioning is off, enable it when adding a node via + button
       const wasAutoPositioningOff = !autoPositioning;
@@ -210,12 +172,22 @@ export const CreateWorkflow = () => {
         setAutoPositioning(true);
       }
 
+      // const newPosition = autoPositioning
+      //   ? {
+      //       x: sourceNode.position.x + extraGap,
+      //       y: sourceNode.position.y,
+      //     }
+      // : {
+      //       x: Math.random() * 400 + 200,
+      //       y: Math.random() * 300 + 100,
+      //   };
+
       // Count how many children this source node already has
       const childrenCount = edges.filter((e: CreateWorkflowEdge) => e.source === sourceId).length;
-      
+
       const horizontalOffset = 350; // Increased for better spacing, especially for event nodes
       const verticalSpacing = 180;
-      
+
       // Alternate children above and below the source
       // Pattern: 0, +180, -180, +360, -360, +540, -540...
       // First child (count=0): 0
@@ -226,11 +198,11 @@ export const CreateWorkflow = () => {
       if (childrenCount > 0) {
         const isOdd = childrenCount % 2 === 1;
         const halfCount = Math.ceil(childrenCount / 2);
-        verticalOffset = isOdd 
-          ? halfCount * verticalSpacing  // Below (positive)
+        verticalOffset = isOdd
+          ? halfCount * verticalSpacing // Below (positive)
           : -halfCount * verticalSpacing; // Above (negative)
       }
-      
+
       // Calculate base position
       const basePosition = {
         x: sourceNode.position.x + horizontalOffset,
@@ -240,13 +212,13 @@ export const CreateWorkflow = () => {
       // Find a non-colliding position
       const newPosition = findNonCollidingPosition(basePosition, nodes);
 
-      const newNode: CreateWorkflowNode = {
+      const newNode: any = {
         id,
         type: nodeType,
         position: newPosition,
         data: {
           label,
-          description: nodeType === NODE_TYPES.EVENT ? 'Add business event.' : '',
+          description: '',
           _triggerRealign: wasAutoPositioningOff,
         },
       };
@@ -260,6 +232,7 @@ export const CreateWorkflow = () => {
         style: { strokeWidth: 2, stroke: '#94a3b8' },
         markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
       };
+
       setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
 
       // Auto-select the new node to open the edit sidebar
@@ -276,220 +249,272 @@ export const CreateWorkflow = () => {
         canvasRef.current?.centerView(newNode.id);
       }, 100);
     },
-    [nodes, setNodes, setEdges, autoPositioning, generateUniqueId, edges, setAutoPositioning, findNonCollidingPosition, setSelectedNode, setHighlightedElements]
+    [
+      nodes,
+      setNodes,
+      setEdges,
+      autoPositioning,
+      generateUniqueId,
+      setSelectedNode,
+      edges,
+      setAutoPositioning,
+      findNonCollidingPosition,
+      setHighlightedElements,
+    ]
   );
 
-  const autoArrangeNodes = useCallback((force: boolean = false) => {
-    if ((!autoPositioning && !force) || nodes.length === 0) return;
+  const autoArrangeNodes = useCallback(
+    (force = false) => {
+      if ((!autoPositioning && !force) || nodes.length === 0) return;
 
-    const adjacencyList = new Map<string, string[]>();
-    const inDegree = new Map<string, number>();
+      const adjacencyList = new Map<string, string[]>();
+      const inDegree = new Map<string, number>();
 
-    nodes.forEach((node: { id: string }) => {
-      adjacencyList.set(node.id, []);
-      inDegree.set(node.id, 0);
-    });
+      nodes.forEach((node: { id: string }) => {
+        adjacencyList.set(node.id, []);
+        inDegree.set(node.id, 0);
+      });
 
-    edges.forEach((edge: { source: string; target: string }) => {
-      adjacencyList.get(edge.source)?.push(edge.target);
-      inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
-    });
+      edges.forEach((edge: { source: string; target: string }) => {
+        adjacencyList.get(edge.source)?.push(edge.target);
+        inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+      });
 
-    const levels: string[][] = [[]];
-    const queue: string[] = [];
-    const visited = new Set<string>();
+      const levels: string[][] = [[]];
+      const queue: string[] = [];
+      const visited = new Set<string>();
 
-    nodes.forEach((node: { id: string }) => {
-      if ((inDegree.get(node.id) || 0) === 0) {
-        queue.push(node.id);
-      }
-    });
-
-    if (queue.length === 0 && nodes.length > 0) {
-      queue.push(nodes[0].id);
-    }
-
-    while (queue.length > 0) {
-      const currentLevel: string[] = [];
-      const nextQueue: string[] = [];
-
-      queue.forEach((nodeId) => {
-        if (!visited.has(nodeId)) {
-          visited.add(nodeId);
-          currentLevel.push(nodeId);
-
-          const connections = adjacencyList.get(nodeId) || [];
-          connections.forEach((connectedId) => {
-            if (!visited.has(connectedId)) {
-              nextQueue.push(connectedId);
-            }
-          });
+      nodes.forEach((node: { id: string }) => {
+        if ((inDegree.get(node.id) || 0) === 0) {
+          queue.push(node.id);
         }
       });
 
-      if (currentLevel.length > 0) {
-        levels.push(currentLevel);
+      if (queue.length === 0 && nodes.length > 0) {
+        queue.push(nodes[0].id);
       }
 
-      queue.length = 0;
-      queue.push(...nextQueue);
-    }
+      while (queue.length > 0) {
+        const currentLevel: string[] = [];
+        const nextQueue: string[] = [];
 
-    const unvisited = nodes.filter((n: { id: string }) => !visited.has(n.id));
-    if (unvisited.length > 0) {
-      levels.push(unvisited.map((n: { id: string }) => n.id));
-    }
+        queue.forEach((nodeId) => {
+          if (!visited.has(nodeId)) {
+            visited.add(nodeId);
+            currentLevel.push(nodeId);
 
-    const updatedNodes = nodes.map((node: CreateWorkflowNode) => {
-      // fixate the start node and have new nodes branch off its position
-      if (node.type === NODE_TYPES.START) {
-        return { ...node, position: START_POSITION };
-      }
+            const connections = adjacencyList.get(nodeId) || [];
+            connections.forEach((connectedId) => {
+              // ... more code continues
+            });
+          }
+        });
 
-      let levelIndex = 0;
-      let positionInLevel = 0;
-
-      for (let i = 0; i < levels.length; i++) {
-        const indexInLevel = levels[i].indexOf(node.id);
-        if (indexInLevel !== -1) {
-          levelIndex = i;
-          positionInLevel = indexInLevel;
-          break;
+        if (currentLevel.length > 0) {
+          levels.push(currentLevel);
         }
+
+        queue.length = 0;
+        queue.push(...nextQueue);
       }
 
-      const levelWidth = levels[levelIndex]?.length || 1;
-      const nodeSpacing = 350; // Increased for better spacing, especially for event nodes
-      const verticalSpacing = 80;
-
-      const baseX = START_POSITION.x;
-      const baseY = START_POSITION.y;
-
-      const newPosition = {
-        x: baseX + levelIndex * nodeSpacing,
-        y: baseY + positionInLevel * verticalSpacing - ((levelWidth - 1) * verticalSpacing) / 2,
-      };
-
-      return { ...node, position: newPosition };
-    });
-
-    setNodes(updatedNodes);
-  }, [nodes, edges, autoPositioning, setNodes]);
-
-  // ==================== VALIDATION ====================
-  const runValidation = useCallback((mode: ValidationMode) => {
-    const result = validateWorkflow(
-      workflowName,
-      workflowDescription,
-      nodes as CreateWorkflowNode[],
-      edges as CreateWorkflowEdge[],
-      mode
-    );
-
-    setValidationResult(result);
-
-    const errorIds = new Set<string>();
-    result.errors.forEach(err => {
-      if (err.nodeId) {
-        errorIds.add(err.nodeId);
+      const unvisited = nodes.filter((n: { id: string }) => !visited.has(n.id));
+      if (unvisited.length > 0) {
+        levels.push(unvisited.map((n: { id: string }) => n.id));
       }
-    });
-    setErrorNodeIds(errorIds);
 
-    return result;
-  }, [workflowName, workflowDescription, nodes, edges]);
+      const updatedNodes = nodes.map((node: { id: string; type: string }) => {
+        // fixate the start node and have new nodes branch off its position
+        if (node.type === NODE_TYPES.START) {
+          return { ...node, position: START_POSITION };
+        }
 
-  // Group validation errors by node - one error message per node
-  const groupedValidationIssues = useMemo((): GroupedValidationIssue[] => {
-    if (!validationResult) return [];
+        let levelIndex = 0;
+        let positionInLevel = 0;
 
-    const allIssues = [...validationResult.errors, ...validationResult.warnings];
-    const groups = new Map<string, ValidationError[]>();
-
-    // Group issues by nodeId (undefined for workflow-level errors)
-    allIssues.forEach(issue => {
-      const key = issue.nodeId || 'workflow';
-      if (!groups.has(key)) {
-        groups.set(key, []);
-      }
-      groups.get(key)!.push(issue);
-    });
-
-    // Convert to array of GroupedValidationIssue
-    return Array.from(groups.entries()).map(([key, issues]) => {
-      const firstIssue = issues[0];
-      const hasErrors = issues.some(i => i.severity === ValidationErrorSeverity.ERROR);
-      const severity = hasErrors ? ValidationErrorSeverity.ERROR : ValidationErrorSeverity.WARNING;
-      
-      const issueCount = issues.length;
-      const errorCount = issues.filter(i => i.severity === ValidationErrorSeverity.ERROR).length;
-      const warningCount = issues.filter(i => i.severity === ValidationErrorSeverity.WARNING).length;
-      
-      let summary = '';
-      if (key === 'workflow') {
-        summary = issueCount === 1 ? issues[0].message : `Review workflow settings (${issueCount} ${issueCount === 1 ? 'issue' : 'issues'})`;
-      } else {
-        // Use actual node name or generate default based on node type
-        let nodeName = firstIssue.nodeName;
-        if (!nodeName) {
-          const node = nodes.find(n => n.id === firstIssue.nodeId);
-          if (node) {
-            if (node.type === NODE_TYPES.STATUS) {
-              nodeName = node.data.label || 'Stage';
-            } else if (node.type === NODE_TYPES.EVENT) {
-              nodeName = node.data.label || 'Transition Block';
-            } else {
-              nodeName = node.data.label || 'Node';
-            }
-          } else {
-            nodeName = 'Node';
+        for (let i = 0; i < levels.length; i++) {
+          const indexInLevel = levels[i].indexOf(node.id);
+          if (indexInLevel !== -1) {
+            levelIndex = i;
+            positionInLevel = indexInLevel;
+            break;
           }
         }
-        
-        if (errorCount > 0 && warningCount > 0) {
-          summary = `${nodeName} has ${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}`;
-        } else if (issueCount === 1) {
-          summary = issues[0].message;
-        } else {
-          summary = `${nodeName} has ${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}`;
-        }
+
+        const levelWidth = levels[levelIndex]?.length || 1;
+        const nodeSpacing = 300;
+        const verticalSpacing = 150;
+
+        const baseX = START_POSITION.x;
+        const baseY = START_POSITION.y;
+
+        const newPosition = {
+          x: baseX + levelIndex * nodeSpacing,
+          y: baseY + positionInLevel * verticalSpacing - ((levelWidth - 1) * verticalSpacing) / 2,
+        };
+
+        return { ...node, position: newPosition };
+      });
+
+      setNodes(updatedNodes);
+    },
+    [nodes, edges, autoPositioning, setNodes]
+  );
+
+  // ==================== NODE/EDGE INTERACTIONS ====================
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: FlowNode) => {
+      // Start node cannot be highlighted or modified
+      if (node.type === NODE_TYPES.START) return;
+
+      setSelectedNode(node);
+
+      const connectedEdgeIds = edges
+        .filter((edge: CreateWorkflowEdge) => edge.source === node.id || edge.target === node.id)
+        .map((edge: CreateWorkflowEdge) => edge.id);
+
+      setHighlightedElements({
+        nodeIds: [node.id],
+        edgeIds: connectedEdgeIds,
+      });
+    },
+    [edges]
+  );
+
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: CreateWorkflowEdge) => {
+    const connectedNodeIds = [edge.source, edge.target].filter(Boolean);
+    setHighlightedElements({
+      nodeIds: connectedNodeIds,
+      edgeIds: [edge.id],
+    });
+    setSelectedNode(null);
+  }, []);
+
+  const handleCanvasClick = useCallback(() => {
+    setSelectedNode(null);
+    setHighlightedElements({ edgeIds: [], nodeIds: [] });
+  }, []);
+
+  const onConnect = useCallback(
+    (params: any) => {
+      setEdges((eds: CreateWorkflowEdge[]) =>
+        addEdge(
+          {
+            ...params,
+            style: { strokeWidth: 2, stroke: '#94a3b8' },
+            markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
+          },
+          eds
+        )
+      );
+      // Ghost edge visibility is managed by the useEffect that monitors edges
+      setConnectionNodeId(null);
+    },
+    [setEdges]
+  );
+
+  const onConnectStart = useCallback((_: any, { nodeId }: { nodeId: string | null }) => {
+    setConnectionNodeId(nodeId);
+  }, []);
+
+  const onConnectEnd = useCallback(() => {
+    setConnectionNodeId(null);
+  }, []);
+
+  // ==================== DRAG AND DROP ====================
+  const onDragStart = (event: React.DragEvent, nodeType: string) => {
+    event.dataTransfer.setData('application/reactflow', nodeType);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow');
+      if (!type) return;
+
+      const { id, label } = generateUniqueId(type, nodes);
+
+      let position;
+      if (nodes.length === 0) {
+        // First node after START: place to the right of START
+        position = {
+          x: START_POSITION.x + 150,
+          y: START_POSITION.y,
+        };
+      } else {
+        // Find the rightmost node
+        const lastNode = nodes.reduce(
+          (
+            rightmost: { position: { x: number; y: number }; id: string },
+            node: { position: { x: number; y: number }; id: string }
+          ) => (node.position.x > rightmost.position.x ? node : rightmost),
+          nodes[0]
+        );
+
+        // Place new node to the right of the last node
+        const horizontalOffset = 350;
+        const verticalVariation = ((nodes.length % 3) - 1) * 100; // -100, 0, or +100 for variation
+
+        const candidatePosition = {
+          x: lastNode.position.x + horizontalOffset,
+          y: lastNode.position.y + verticalVariation,
+        };
+
+        // Check for collisions and find a non-colliding position if needed
+        position = findNonCollidingPosition(candidatePosition, nodes);
       }
 
-      return {
-        nodeId: key === 'workflow' ? undefined : firstIssue.nodeId,
-        nodeName: key === 'workflow' ? undefined : firstIssue.nodeName,
-        severity,
-        summary,
-        issues,
+      const newNode: any = {
+        id,
+        type,
+        position,
+        data: {
+          label,
+          description: '',
+        },
       };
-    });
-  }, [validationResult]);
 
-  // Reset error index to 0 when new validation results arrive
-  useEffect(() => {
-    if (validationResult) {
-      setCurrentErrorIndex(0);
-    }
-  }, [validationResult]);
+      setNodes((nds: CreateWorkflowNode[]) => [...nds, newNode]);
 
-  // Auto-focus first error when validation runs
-  useEffect(() => {
-    if (groupedValidationIssues.length > 0 && groupedValidationIssues[0].nodeId) {
-      handleValidationErrorClick(groupedValidationIssues[0].nodeId);
-    }
-  }, [validationResult]); // Only run when validation result changes
+      // Auto-select and center view on new node
+      setSelectedNode(newNode);
+      setTimeout(() => {
+        canvasRef.current?.centerView(newNode.id);
+      }, 50);
+
+      if (autoPositioning && nodes.length > 0) {
+        const lastNode = nodes.reduce(
+          (
+            rightmost: { position: { x: number }; id: string },
+            node: { position: { x: number }; id: string }
+          ) => (node.position.x > rightmost.position.x ? node : rightmost),
+          nodes[0]
+        );
+
+        const newEdge = {
+          id: `edge-${lastNode.id}-${newNode.id}`,
+          source: lastNode.id,
+          target: newNode.id,
+          style: { strokeWidth: 2, stroke: '#94a3b8' },
+          markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
+        };
+
+        setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
+        // Ghost edge will be hidden by the useEffect that monitors edges
+      }
+    },
+    [setNodes, setEdges, nodes, autoPositioning, generateUniqueId, setSelectedNode]
+  );
 
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
-    const result = runValidation(ValidationMode.SAVE);
-
-    if (!result.isValid) {
-      console.log('❌ Save blocked: Validation errors found', result.errors);
-      // Auto-focus first error - will be handled by the effect
-      setCurrentErrorIndex(0);
-      return;
-    }
-
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -506,22 +531,9 @@ export const CreateWorkflow = () => {
       })),
       autoPositioning,
     };
-    
-    console.log('✅ Save draft successful:', workflowData);
-    setValidationResult(null);
-    setErrorNodeIds(new Set());
   };
 
   const handlePublishDraft = () => {
-    const result = runValidation(ValidationMode.PUBLISH);
-
-    if (!result.isValid) {
-      console.log('❌ Publish blocked: Validation errors found', result.errors);
-      // Auto-focus first error - will be handled by the effect
-      setCurrentErrorIndex(0);
-      return;
-    }
-
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -538,67 +550,19 @@ export const CreateWorkflow = () => {
       })),
       status: 'published',
     };
-    
-    console.log('✅ Publish successful:', workflowData);
-    setValidationResult(null);
-    setErrorNodeIds(new Set());
   };
-
-  const handleMaximizeCanvas = () => {
-    canvasRef.current?.maximizeCanvas();
-  };
-
-  const handleValidationErrorClick = useCallback((nodeId?: string) => {
-    if (!nodeId) return;
-
-    const node = nodes.find((n: CreateWorkflowNode) => n.id === nodeId);
-    if (node) {
-      setSelectedNode(node);
-      canvasRef.current?.centerView(nodeId);
-    }
-  }, [nodes]);
-
-  const handleCloseValidationPanel = useCallback(() => {
-    setValidationResult(null);
-    setErrorNodeIds(new Set());
-    setCurrentErrorIndex(0);
-  }, []);
-
-  const handleNextError = useCallback(() => {
-    const nextIndex = Math.min(currentErrorIndex + 1, groupedValidationIssues.length - 1);
-    setCurrentErrorIndex(nextIndex);
-    if (groupedValidationIssues[nextIndex]?.nodeId) {
-      handleValidationErrorClick(groupedValidationIssues[nextIndex].nodeId);
-    }
-  }, [groupedValidationIssues, currentErrorIndex, handleValidationErrorClick]);
-
-  const handlePreviousError = useCallback(() => {
-    const prevIndex = Math.max(currentErrorIndex - 1, 0);
-    setCurrentErrorIndex(prevIndex);
-    if (groupedValidationIssues[prevIndex]?.nodeId) {
-      handleValidationErrorClick(groupedValidationIssues[prevIndex].nodeId);
-    }
-  }, [groupedValidationIssues, currentErrorIndex, handleValidationErrorClick]);
-
-  const handleFocusError = useCallback((index: number) => {
-    if (index >= 0 && index < groupedValidationIssues.length) {
-      setCurrentErrorIndex(index);
-      if (groupedValidationIssues[index]?.nodeId) {
-        handleValidationErrorClick(groupedValidationIssues[index].nodeId);
-      }
-    }
-  }, [groupedValidationIssues, handleValidationErrorClick]);
 
   const handleNodeDelete = () => {
     if (selectedNode) {
       setNodes((nds: CreateWorkflowNode[]) => {
         // when nodes only have a start node and one more node, delete the connected node and reset start node
         if (nds.length === 2) {
-          return [{ ...nds[0], data: { ...nds[0].data, showGhostEdge: true } }];
+          return [startNodeRef.current];
         } else {
           return nds.filter((n: { id: string }) => n.id !== selectedNode.id);
         }
       });
+
       setEdges((eds: CreateWorkflowEdge[]) =>
         eds.filter(
           (e: { source: string; target: string }) =>
@@ -705,156 +669,6 @@ export const CreateWorkflow = () => {
     // TODO: Implement entity/event creation dialog
   }, []);
 
-  // ==================== NODE/EDGE INTERACTIONS ====================
-  const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: FlowNode) => {
-      // Start node cannot be highlighted or modified
-      if (node.type === NODE_TYPES.START) return;
-
-      setSelectedNode(node);
-
-      const connectedEdgeIds = edges
-        .filter((edge: CreateWorkflowEdge) => edge.source === node.id || edge.target === node.id)
-        .map((edge: CreateWorkflowEdge) => edge.id);
-
-      setHighlightedElements({
-        nodeIds: [node.id],
-        edgeIds: connectedEdgeIds,
-      });
-    },
-    [edges]
-  );
-
-  const onEdgeClick = useCallback((_: React.MouseEvent, edge: CreateWorkflowEdge) => {
-    const connectedNodeIds = [edge.source, edge.target].filter(Boolean);
-    setHighlightedElements({
-      nodeIds: connectedNodeIds,
-      edgeIds: [edge.id],
-    });
-    setSelectedNode(null);
-  }, []);
-
-  const handleCanvasClick = useCallback(() => {
-    setSelectedNode(null);
-    setHighlightedElements({ edgeIds: [], nodeIds: [] });
-  }, []);
-
-  const onConnect = useCallback(
-    (params: any) => {
-      setEdges((eds: CreateWorkflowEdge[]) =>
-        addEdge(
-          {
-            ...params,
-            style: { strokeWidth: 2, stroke: '#94a3b8' },
-            markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
-          },
-          eds
-        )
-      );
-      // Ghost edge visibility is managed by the useEffect that monitors edges
-      setConnectionNodeId(null);
-    },
-    [setEdges]
-  );
-
-  const onConnectStart = useCallback((_: any, { nodeId }: { nodeId: string | null }) => {
-    setConnectionNodeId(nodeId);
-  }, []);
-
-  const onConnectEnd = useCallback(() => {
-    setConnectionNodeId(null);
-  }, []);
-
-  // ==================== DRAG AND DROP ====================
-  const onDragStart = (event: React.DragEvent, nodeType: string) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (!type) return;
-
-      // Auto-dismiss error banner when user adds a node via drag-and-drop
-      setValidationResult(null);
-      setErrorNodeIds(new Set());
-
-      const { id, label } = generateUniqueId(type, nodes);
-      
-      let position;
-      if (nodes.length === 0) {
-        // First node after START: place to the right of START
-        position = {
-          x: START_POSITION.x + 350,
-          y: START_POSITION.y,
-        };
-      } else {
-        // Find the rightmost node
-        const lastNode = nodes.reduce(
-          (rightmost: { position: { x: number; y: number } }, node: { position: { x: number; y: number } }) =>
-            node.position.x > rightmost.position.x ? node : rightmost,
-          nodes[0]
-        );
-
-        // Place new node to the right of the last node
-        const horizontalOffset = 350;
-        const verticalVariation = (nodes.length % 3 - 1) * 100; // -100, 0, or +100 for variation
-        
-        const candidatePosition = {
-          x: lastNode.position.x + horizontalOffset,
-          y: lastNode.position.y + verticalVariation,
-        };
-
-        // Check for collisions and find a non-colliding position if needed
-        position = findNonCollidingPosition(candidatePosition, nodes);
-      }
-
-      const newNode: CreateWorkflowNode = {
-        id,
-        type,
-        position,
-        data: {
-          label,
-          description: type === NODE_TYPES.EVENT ? 'Add business event.' : '',
-        },
-      };
-
-      setNodes((nds: CreateWorkflowNode[]) => [...nds, newNode]);
-      
-      // Auto-select and center view on new node
-      setSelectedNode(newNode);
-      setTimeout(() => {
-        canvasRef.current?.centerView(newNode.id);
-      }, 50);
-
-      if (autoPositioning && nodes.length > 0) {
-        const lastNode = nodes.reduce(
-          (rightmost: { position: { x: number }; id: string }, node: { position: { x: number }; id: string }) =>
-            node.position.x > rightmost.position.x ? node : rightmost,
-          nodes[0]
-        );
-        const newEdge = {
-          id: `edge-${lastNode.id}-${newNode.id}`,
-          source: lastNode.id,
-          target: newNode.id,
-          style: { strokeWidth: 2, stroke: '#94a3b8' },
-          markerEnd: { type: 'arrowclosed' as const, color: '#94a3b8' },
-        };
-        setEdges((eds: CreateWorkflowEdge[]) => eds.concat(newEdge));
-        // Ghost edge will be hidden by the useEffect that monitors edges
-      }
-    },
-    [setNodes, setEdges, nodes, autoPositioning, generateUniqueId, setSelectedNode]
-  );
-
   // ==================== EFFECTS & EVENT LISTENERS ====================
   useEffect(() => {
     const handleAddConnectedNode = (event: Event) => {
@@ -874,19 +688,17 @@ export const CreateWorkflow = () => {
     const startNodeId = startNodeRef.current.id;
     const hasOutgoingEdges = edges.some((edge: CreateWorkflowEdge) => edge.source === startNodeId);
     const shouldShowGhostEdge = !hasOutgoingEdges;
-    
+
     setNodes((nds: CreateWorkflowNode[]) => {
       const startNode = nds.find((n: CreateWorkflowNode) => n.id === startNodeId);
-      
+
       // Only update if the ghost edge state needs to change
       if (!startNode || startNode.data.showGhostEdge === shouldShowGhostEdge) {
         return nds;
       }
-      
+
       return nds.map((n: CreateWorkflowNode) =>
-        n.id === startNodeId
-          ? { ...n, data: { ...n.data, showGhostEdge: shouldShowGhostEdge } }
-          : n
+        n.id === startNodeId ? { ...n, data: { ...n.data, showGhostEdge: shouldShowGhostEdge } } : n
       );
     });
   }, [edges, setNodes]);
@@ -899,7 +711,7 @@ export const CreateWorkflow = () => {
       setNodes((nds: CreateWorkflowNode[]) =>
         nds.map((n: CreateWorkflowNode) =>
           n.id === nodeThatTriggeredRealign.id
-            ? { ...n, data: { ...n.data, _triggerRealign: undefined } }
+            ? { ...n, data: { ...n.data._triggerRealign: undefined } }
             : n
         )
       );
@@ -921,14 +733,14 @@ export const CreateWorkflow = () => {
   // Enhanced nodes with connection state
   const nodesWithConnectionState = useMemo(
     () =>
-      nodes.map((node: CreateWorkflowNode) => ({
+      nodes.map((node: { data: any }) => ({
         ...node,
         data: {
           ...node.data,
           isConnecting: connectionNodeId !== null,
           connectionNodeId,
           connectionSourceType: connectionNodeId
-            ? nodes.find((n: CreateWorkflowNode) => n.id === connectionNodeId)?.type
+            ? nodes.find((n: { id: string }) => n.id === connectionNodeId)?.type
             : null,
         },
       })),
@@ -936,33 +748,31 @@ export const CreateWorkflow = () => {
   );
 
   return (
-    <div className='h-full overflow-y-auto flex bg-gray-100 pt-16'>
+    <div className='h-full overflow-y-auto flex bg-gray-100'>
       <Sidebar
         workflowName={workflowName}
         workflowDescription={workflowDescription}
         autoPositioning={autoPositioning}
         lastNodeType={
           nodes.length > 0
-            ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
-                prev.position.x > current.position.x ? prev : current
+            ? nodes.reduce(
+                (prev: { position: { x: number } }, current: { position: { x: number } }) =>
+                  prev.position.x > current.position.x ? prev : current
               ).type
             : null
         }
-        onWorkflowNameChange={handleWorkflowNameChange}
-        onWorkflowDescriptionChange={handleWorkflowDescriptionChange}
+        onWorkflowNameChange={setWorkflowName}
+        onWorkflowDescriptionChange={setWorkflowDescription}
         onAutoPositioningChange={setAutoPositioning}
         onDragStart={onDragStart}
         onSaveDraft={handleSaveDraft}
         onPublishDraft={handlePublishDraft}
-        onMaximizeCanvas={handleMaximizeCanvas}
       />
-
       <Canvas
         ref={canvasRef}
         nodes={nodesWithConnectionState}
         edges={edges}
         highlightedElements={highlightedElements}
-        errorNodeIds={errorNodeIds}
         nodeTypes={nodeTypes}
         autoPositioning={autoPositioning}
         onNodesChange={onNodesChange}
@@ -976,10 +786,8 @@ export const CreateWorkflow = () => {
         onDrop={onDrop}
         onDragOver={onDragOver}
       />
-
       <NodeEditorSidebar
         selectedNode={selectedNode}
-        edges={edges}
         businessEvent={currentNodeData.businessEvent}
         businessEventName={currentNodeData.businessEventName}
         condition={currentNodeData.condition}
@@ -999,20 +807,9 @@ export const CreateWorkflow = () => {
         onCreatedEntitiesChange={handleCreatedEntitiesChange}
         onModifiedEntitiesChange={handleModifiedEntitiesChange}
         onCreateNew={handleCreateNew}
-        onDelete={handleNodeDelete}
         onDone={() => setSelectedNode(null)}
+        onDelete={handleNodeDelete}
       />
-
-      {groupedValidationIssues.length > 0 && (
-        <ValidationErrorPanel
-          groupedIssues={groupedValidationIssues}
-          currentIndex={currentErrorIndex}
-          onClose={handleCloseValidationPanel}
-          onNext={handleNextError}
-          onPrevious={handlePreviousError}
-          onFocusError={handleFocusError}
-        />
-      )}
     </div>
   );
 };

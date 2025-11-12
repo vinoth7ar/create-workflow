@@ -1,10 +1,7 @@
+import { HierarchicalSelect } from '@/components/ui/hierarchical-select';
 import { useState, useEffect } from 'react';
-import {
-  HierarchicalOption,
-  HierarchicalSelect,
-} from '@/components/ui/hierarchical-select';
-import { ChevronDoubleUp, TrashIcon } from '@/assets';
-import { NODE_TYPES } from '@/models/singleView/nodeTypes';
+import { ChevronDoubleUp, DragReorder, TrashIcon } from 'src/assets';
+import { HierarchicalOption, NODE_TYPES } from 'src/models/singleView/nodeTypes';
 
 // Tag Component for displaying selected items
 const Tag = ({
@@ -14,19 +11,19 @@ const Tag = ({
 }: {
   label: string;
   onRemove: () => void;
-  testId?: string;
+  testId: string;
 }) => (
   <div
-    className='inline-flex items-center gap-1 px-3 py-1 bg-[#0276A1] text-white rounded-full text-sm'
+    className='inline-flex items-center gap-1 px-3 py-1 bg-[#8276A1] text-white rounded-full text-sm'
     data-testid={testId}
   >
     <span>{label}</span>
     <button
       onClick={onRemove}
-      className='hover:bg-[#0276A1] rounded-full p-0.5 px-1 transition-colors text-white'
+      className='hover:bg-[#8276A1] rounded-full p-0.5 px-1 transition-colors text-white'
       data-testid={`${testId}-remove`}
     >
-      ✕
+      ×
     </button>
   </div>
 );
@@ -80,16 +77,6 @@ const entityOptions: HierarchicalOption[] = [
     children: [
       { value: 'borrower-profile', label: 'Borrower Profile' },
       { value: 'borrower-documents', label: 'Borrower Documents' },
-      { value: 'borrower-credit', label: 'Borrower Credit' },
-    ],
-  },
-  {
-    value: 'entities',
-    label: 'Entities',
-    children: [
-      { value: 'name-name', label: 'name_name_description' },
-      { value: 'entity-1', label: 'Entity 1 description' },
-      { value: 'entity-2', label: 'Entity 2 description' },
     ],
   },
 ];
@@ -115,6 +102,15 @@ const multiSelectEntityOptions: HierarchicalOption[] = [
       { value: 'borrower-profile', label: 'Borrower Profile' },
       { value: 'borrower-documents', label: 'Borrower Documents' },
       { value: 'borrower-credit', label: 'Borrower Credit' },
+    ],
+  },
+  {
+    value: 'entities',
+    label: 'Entities',
+    children: [
+      { value: 'name-name', label: 'name_name description' },
+      { value: 'entity-1', label: 'Entity 1 description' },
+      { value: 'entity-2', label: 'Entity 2 description' },
     ],
   },
 ];
@@ -178,7 +174,6 @@ export const NodeEditorSidebar = ({
   onDone,
 }: NodeEditorSidebarProps) => {
   const [currentStep, setCurrentStep] = useState(WizardStep.TRANSITION_PANEL);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Reset wizard step when selectedNode changes
   useEffect(() => {
@@ -209,38 +204,24 @@ export const NodeEditorSidebar = ({
     }
   };
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === TOTAL_STEPS - 1;
 
   // Determine button label: "Next" if not on last step OR on last step with connected nodes, otherwise "Done"
-  const buttonLabel = !isLastStep || (isLastStep && hasConnectedNodeAfter) ? 'Next' : 'Done';
+  const buttonLabel = isLastStep || (isLastStep && hasConnectedNodeAfter) ? 'Next' : 'Done';
 
   return (
-    <div className={`${isCollapsed ? 'w-12' : 'w-80'} bg-gray-800 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out overflow-hidden`}>
+    <div className='w-[21rem] bg-gray-800 text-white flex flex-col shadow-2xl'>
       <div className='p-4 border-b border-gray-600 flex items-center justify-between'>
-        <button
-          onClick={toggleCollapse}
-          className='text-gray-400 hover:text-white transition-all cursor-pointer'
-          data-testid='button-toggle-sidebar'
-        >
-          <div className={`transform transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}>
-            <ChevronDoubleUp />
-          </div>
+        <ChevronDoubleUp />
+        <DragReorder />
+
+        <button className='text-gray-400 hover:text-red-500 transition-color' onClick={onDelete}>
+          <TrashIcon />
         </button>
-        {!isCollapsed && (
-          <button className='text-gray-400 hover:text-red-500 transition-color' onClick={onDelete} data-testid='button-delete-node'>
-            <TrashIcon />
-          </button>
-        )}
       </div>
 
-      {!isCollapsed && (
-        <>
-        <div className='flex-1 p-6 space-y-6 overflow-y-auto'>
+      <div className='flex-1 p-6 space-y-6 overflow-y-auto'>
         {isTransitionBlock && (
           <>
             {currentStep === WizardStep.TRANSITION_PANEL && (
@@ -249,22 +230,14 @@ export const NodeEditorSidebar = ({
                   <label className='text-sm font-medium text-white mb-3 block'>
                     Business Event(s) and/or Subworkflow(s)
                   </label>
-                  {businessEvent && (
-                    <div className='mb-3 flex flex-wrap gap-2'>
-                      <Tag
-                        label={businessEvent}
-                        onRemove={() => onBusinessEventChange('', '')}
-                        testId='tag-business-event'
-                      />
-                    </div>
-                  )}
                   <HierarchicalSelect
                     options={businessEventOptions}
                     value={businessEvent}
-                    onChange={(value: string, label: string | undefined) =>
-                      onBusinessEventChange(value, label || value)
-                    }
-                    placeholder='Select business event(s) and/or subworkflow(s)'
+                    onChange={(value: string, label: string | undefined) => {
+                      onBusinessEventChange(value, label || value);
+                      onBusinessEventNameChange(label || value);
+                    }}
+                    placeholder="Select business event(s) and/or subworkflow(s)"
                     onCreateNew={onCreateNew}
                     data-testid='select-business-event'
                   />
@@ -282,9 +255,9 @@ export const NodeEditorSidebar = ({
                 </div>
 
                 <div>
-                  <label className='text-sm font-medium text-gray-400 mb-2 block'>Trigger</label>
-                  <div className='space-y-3'>
-                    <label className='flex items-center gap-3'>
+                  <label className='text-sm font-medium text-white mb-2 block'>Trigger</label>
+                  <div className='flex items-center gap-3 text-sm'>
+                    <div className='flex items-center gap-3'>
                       <input
                         type='checkbox'
                         checked={automaticTrigger}
@@ -293,8 +266,8 @@ export const NodeEditorSidebar = ({
                         data-testid='checkbox-automatic-trigger'
                       />
                       <span className='text-white'>Automatic</span>
-                    </label>
-                    <label className='flex items-center gap-3'>
+                    </div>
+                    <div className='flex items-center gap-3'>
                       <input
                         type='checkbox'
                         checked={externalTrigger}
@@ -303,7 +276,7 @@ export const NodeEditorSidebar = ({
                         data-testid='checkbox-external-trigger'
                       />
                       <span className='text-white'>External</span>
-                    </label>
+                    </div>
                   </div>
                 </div>
               </>
@@ -312,23 +285,16 @@ export const NodeEditorSidebar = ({
             {currentStep === WizardStep.DETAILS && (
               <>
                 <div>
-                  <label className='text-sm font-medium text-gray-400 mb-2 block'>
+                  <label className='text-sm font-medium text-white mb-2 block'>
                     Business Event Name
                   </label>
-                  <input
-                    type='text'
-                    value={businessEventName}
-                    onChange={(e) => onBusinessEventNameChange(e.target.value)}
-                    placeholder='Stage'
-                    className='w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white placeholder-gray-500'
-                    data-testid='input-business-event-name'
-                  />
+                  <p className='bg-white rounded px-4 py-3 text-sm text-gray-500 font-semibold cursor-not-allowed'>
+                    {businessEventName}
+                  </p>
                 </div>
 
                 <div>
-                  <label className='text-sm font-medium text-gray-400 mb-2 block'>
-                    Focal Entity
-                  </label>
+                  <label className='text-sm font-medium text-white mb-2 block'>Focal Entity</label>
                   <HierarchicalSelect
                     options={entityOptions}
                     value={focalEntity}
@@ -339,38 +305,21 @@ export const NodeEditorSidebar = ({
                 </div>
 
                 <div>
-                  <label className='text-sm font-medium text-gray-400 mb-2 block'>
-                    Description
-                  </label>
+                  <label className='text-sm font-medium text-white mb-2 block'>Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => onDescriptionChange(e.target.value)}
-                    placeholder='FLUME stages'
+                    placeholder='Enter event description'
                     rows={4}
-                    className='w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white placeholder-gray-500 resize'
+                    className='w-full bg-white border border-gray-600 rounded px-4 py-3 text-black placeholder:text-gray-500'
                     data-testid='textarea-description'
                   />
                 </div>
 
                 <div>
-                  <label className='text-sm font-medium text-gray-400 mb-2 block'>
+                  <label className='text-sm font-medium text-white mb-2 block'>
                     Created Entities
                   </label>
-                  {createdEntities.length > 0 && (
-                    <div className='mb-3 flex flex-wrap gap-2'>
-                      {createdEntities.map((entity, index) => (
-                        <Tag
-                          key={index}
-                          label={entity}
-                          onRemove={() => {
-                            const newEntities = createdEntities.filter((_, i) => i !== index);
-                            onCreatedEntitiesChange(newEntities);
-                          }}
-                          testId={`tag-created-entity-${index}`}
-                        />
-                      ))}
-                    </div>
-                  )}
                   <HierarchicalSelect
                     options={multiSelectEntityOptions}
                     value={createdEntities}
@@ -381,27 +330,19 @@ export const NodeEditorSidebar = ({
                     className='your-custom-class'
                     data-testid='select-created-entities'
                   />
+                  <button
+                    onClick={onCreateNew}
+                    className='text-sm mt-2 underline text-[#00A9E6] hover:text-[#0891b2] transition-colors'
+                    data-testid='button-advanced-select-created'
+                  >
+                    Advanced Select
+                  </button>
                 </div>
 
                 <div>
-                  <label className='text-sm font-medium text-gray-400 mb-2 block'>
+                  <label className='text-sm font-medium text-white mb-2 block'>
                     Modified Entities
                   </label>
-                  {modifiedEntities.length > 0 && (
-                    <div className='mb-3 flex flex-wrap gap-2'>
-                      {modifiedEntities.map((entity, index) => (
-                        <Tag
-                          key={index}
-                          label={entity}
-                          onRemove={() => {
-                            const newEntities = modifiedEntities.filter((_, i) => i !== index);
-                            onModifiedEntitiesChange(newEntities);
-                          }}
-                          testId={`tag-modified-entity-${index}`}
-                        />
-                      ))}
-                    </div>
-                  )}
                   <HierarchicalSelect
                     options={multiSelectEntityOptions}
                     value={modifiedEntities}
@@ -413,7 +354,7 @@ export const NodeEditorSidebar = ({
                   />
                   <button
                     onClick={onCreateNew}
-                    className='text-blue-400 hover:text-blue-300 text-sm mt-2 transition-colors'
+                    className='text-sm mt-2 underline text-[#00A9E6] hover:text-[#0891b2] transition-colors'
                     data-testid='button-advanced-select-modified'
                   >
                     Advanced Select
@@ -426,55 +367,68 @@ export const NodeEditorSidebar = ({
 
         {isStateNode && (
           <div>
-            <label className='text-sm font-medium text-white mb-3 block'>State Name</label>
-            <input
-              type='text'
-              value={businessEventName}
-              onChange={(e) => {
-                onBusinessEventNameChange(e.target.value);
-              }}
-              placeholder='Enter state name'
-              className='w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white'
-              data-testid='input-state-name'
-            />
+            <label className='text-sm font-medium text-white mb-3 block'>State</label>
+            <div>
+              <input
+                type='text'
+                value={businessEventName}
+                onChange={(e) => {
+                  onBusinessEventNameChange(e.target.value);
+                }}
+                placeholder='Enter state name'
+                className='w-full bg-white border border-gray-600 rounded px-4 py-3 text-black'
+                data-testid='input-state-name'
+              />
+            </div>
           </div>
         )}
-      </div>
 
-      <div className='p-6 border-t border-gray-600'>
-        {isTransitionBlock ? (
-          <div className='flex gap-3'>
-            {!isFirstStep && (
+        <div className='p-6'>
+          {isTransitionBlock ? (
+            <div className={`flex gap-3 ${isFirstStep ? 'justify-between' : 'justify-end'}`}>
+              {isFirstStep && (
+                <div className='flex gap-3 justify-center'>
+                  {isFirstStep && (
+                    <div className='flex gap-2 items-center border-r border-gray-500 pr-3 text-white'>
+                      <button onClick={handlePrevious} data-testid='button-previous'>
+                        <span>Previous</span>
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    disabled={!businessEventName}
+                    onClick={handleNext}
+                    className='px-6 py-2 border border-gray-500 rounded-full text-white hover:bg-gray-700 transition-colors'
+                    data-testid={buttonLabel === 'Next' ? 'button-next' : 'button-done'}
+                  >
+                    {buttonLabel}
+                  </button>
+                </div>
+              ) : (
+                <div className='flex gap-3 justify-end'>
+                  <button
+                    onClick={onDone}
+                    className='px-6 py-2 rounded-full text-white bg-tertiary-500 hover:bg-tertiary-600 transition-colors'
+                    data-testid='button-done'
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className='flex gap-3 justify-end'>
               <button
-                onClick={handlePrevious}
-                className='flex-1 px-6 py-3 border border-gray-500 rounded-full text-white hover:bg-gray-700 transition-colors'
-                data-testid='button-previous'
+                onClick={onDone}
+                className='px-6 py-2 rounded-full text-white bg-tertiary-500 hover:bg-tertiary-600 transition-colors'
+                data-testid='button-done'
               >
-                Previous
+                Done
               </button>
-            )}
-            <button
-              onClick={handleNext}
-              className={`${
-                isFirstStep ? 'w-full' : 'flex-1'
-              } px-6 py-3 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors`}
-              data-testid={buttonLabel === 'Next' ? 'button-next' : 'button-done'}
-            >
-              {buttonLabel}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={onDone}
-            className='w-full px-6 py-3 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors'
-            data-testid={buttonLabel === 'Next' ? 'button-next' : 'button-done'}
-          >
-            {buttonLabel}
-          </button>
-        )}
+            </div>
+          )}
+        </div>
       </div>
-      </>
-      )}
     </div>
   );
 };

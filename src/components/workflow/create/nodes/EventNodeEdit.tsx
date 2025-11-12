@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { NODE_TYPES } from '@/models/singleView/nodeTypes';
+import { NODE_TYPES } from 'src/models/singleView/nodeTypes';
 
 type EventNodeEditProps = {
   data: {
