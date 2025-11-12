@@ -81,7 +81,7 @@ export const CreateWorkflow = () => {
   const updateNodeData = useCallback(
     (nodeId: string, updates: Record<string, any>) => {
       setNodes((nds: CreateWorkflowNode[]) =>
-        nds.map((node: { id: string; data: any }) =>
+        nds.map((node: CreateWorkflowNode) =>
           node.id === nodeId ? { ...node, data: { ...node.data, ...updates } } : node
         )
       );
@@ -323,7 +323,7 @@ export const CreateWorkflow = () => {
         levels.push(unvisited.map((n: { id: string }) => n.id));
       }
 
-      const updatedNodes = nodes.map((node: { id: string; type: string }) => {
+      const updatedNodes = nodes.map((node: CreateWorkflowNode) => {
         // fixate the start node and have new nodes branch off its position
         if (node.type === NODE_TYPES.START) {
           return { ...node, position: START_POSITION };
@@ -733,14 +733,14 @@ export const CreateWorkflow = () => {
   // Enhanced nodes with connection state
   const nodesWithConnectionState = useMemo(
     () =>
-      nodes.map((node: { data: any }) => ({
+      nodes.map((node: CreateWorkflowNode) => ({
         ...node,
         data: {
           ...node.data,
           isConnecting: connectionNodeId !== null,
           connectionNodeId,
           connectionSourceType: connectionNodeId
-            ? nodes.find((n: { id: string }) => n.id === connectionNodeId)?.type
+            ? nodes.find((n: CreateWorkflowNode) => n.id === connectionNodeId)?.type
             : null,
         },
       })),
@@ -756,7 +756,7 @@ export const CreateWorkflow = () => {
         lastNodeType={
           nodes.length > 0
             ? nodes.reduce(
-                (prev: { position: { x: number } }, current: { position: { x: number } }) =>
+                (prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
                   prev.position.x > current.position.x ? prev : current
               ).type
             : null
@@ -788,6 +788,7 @@ export const CreateWorkflow = () => {
       />
       <NodeEditorSidebar
         selectedNode={selectedNode}
+        edges={edges}
         businessEvent={currentNodeData.businessEvent}
         businessEventName={currentNodeData.businessEventName}
         condition={currentNodeData.condition}

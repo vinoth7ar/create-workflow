@@ -1,7 +1,7 @@
 import { HierarchicalSelect } from '@/components/ui/hierarchical-select';
 import { useState, useEffect } from 'react';
-import { ChevronDoubleUp, DragReorder, TrashIcon } from 'src/assets';
-import { HierarchicalOption, NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { ChevronDoubleUp, DragReorder, TrashIcon } from '@/assets';
+import { HierarchicalOption, NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 // Tag Component for displaying selected items
 const Tag = ({
@@ -320,16 +320,23 @@ export const NodeEditorSidebar = ({
                   <label className='text-sm font-medium text-white mb-2 block'>
                     Created Entities
                   </label>
-                  <HierarchicalSelect
-                    options={multiSelectEntityOptions}
-                    value={createdEntities}
-                    onChange={onCreatedEntitiesChange}
-                    placeholder='Select created entities'
-                    onCreateNew={onCreateNew}
-                    multiple={true}
-                    className='your-custom-class'
-                    data-testid='select-created-entities'
-                  />
+                  <div className='space-y-2'>
+                    {createdEntities.map((entity, index) => (
+                      <div key={index} className='flex items-center gap-2 bg-white px-3 py-2 rounded border border-gray-300'>
+                        <span className='flex-1 text-sm text-gray-800'>{entity}</span>
+                        <button
+                          onClick={() => {
+                            const updated = createdEntities.filter((_, i) => i !== index);
+                            onCreatedEntitiesChange(updated);
+                          }}
+                          className='text-red-600 hover:text-red-800 text-sm'
+                          data-testid={`button-remove-created-${index}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                   <button
                     onClick={onCreateNew}
                     className='text-sm mt-2 underline text-[#00A9E6] hover:text-[#0891b2] transition-colors'
@@ -343,15 +350,23 @@ export const NodeEditorSidebar = ({
                   <label className='text-sm font-medium text-white mb-2 block'>
                     Modified Entities
                   </label>
-                  <HierarchicalSelect
-                    options={multiSelectEntityOptions}
-                    value={modifiedEntities}
-                    onChange={onModifiedEntitiesChange}
-                    placeholder='Select modified entities'
-                    onCreateNew={onCreateNew}
-                    multiple={true}
-                    data-testid='select-modified-entities'
-                  />
+                  <div className='space-y-2'>
+                    {modifiedEntities.map((entity, index) => (
+                      <div key={index} className='flex items-center gap-2 bg-white px-3 py-2 rounded border border-gray-300'>
+                        <span className='flex-1 text-sm text-gray-800'>{entity}</span>
+                        <button
+                          onClick={() => {
+                            const updated = modifiedEntities.filter((_, i) => i !== index);
+                            onModifiedEntitiesChange(updated);
+                          }}
+                          className='text-red-600 hover:text-red-800 text-sm'
+                          data-testid={`button-remove-modified-${index}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                   <button
                     onClick={onCreateNew}
                     className='text-sm mt-2 underline text-[#00A9E6] hover:text-[#0891b2] transition-colors'
