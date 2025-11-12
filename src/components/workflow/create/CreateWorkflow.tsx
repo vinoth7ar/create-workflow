@@ -12,7 +12,7 @@ import {
   CreateWorkflowNode,
   FlowNode,
   NODE_TYPES,
-} from 'src/models/singleView/nodeTypes';
+} from '@/models/singleView/nodeTypes';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -711,7 +711,7 @@ export const CreateWorkflow = () => {
       setNodes((nds: CreateWorkflowNode[]) =>
         nds.map((n: CreateWorkflowNode) =>
           n.id === nodeThatTriggeredRealign.id
-            ? { ...n, data: { ...n.data._triggerRealign: undefined } }
+            ? { ...n, data: { ...n.data, _triggerRealign: undefined } }
             : n
         )
       );

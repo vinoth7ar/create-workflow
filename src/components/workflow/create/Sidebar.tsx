@@ -1,5 +1,5 @@
-import { ArmySymbol, SignBadge } from 'src/assets';
-import { NODE_TYPES } from 'src/models/singleView/nodeTypes';
+import { ArrowSymbol, SignBadge } from '@/assets';
+import { NODE_TYPES } from '@/models/singleView/nodeTypes';
 
 interface SidebarProps {
   workflowName: string;
@@ -125,7 +125,7 @@ export const Sidebar = ({
               onDragStart={(e) => !isEventDisabled && onDragStart(e, NODE_TYPES.EVENT)}
               data-testid='palette-transition-block'
             >
-              <ArmySymbol />
+              <ArrowSymbol />
               <span className='icon' />
               <div className='flex-1'>
                 <div className='font-bold text-sm text-gray-900'>Transition Block</div>
