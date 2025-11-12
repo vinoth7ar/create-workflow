@@ -386,15 +386,13 @@ export const NodeEditorSidebar = ({
         <div className='p-6'>
           {isTransitionBlock ? (
             <div className={`flex gap-3 ${isFirstStep ? 'justify-between' : 'justify-end'}`}>
-              {isFirstStep && (
+              {isFirstStep ? (
                 <div className='flex gap-3 justify-center'>
-                  {isFirstStep && (
-                    <div className='flex gap-2 items-center border-r border-gray-500 pr-3 text-white'>
-                      <button onClick={handlePrevious} data-testid='button-previous'>
-                        <span>Previous</span>
-                      </button>
-                    </div>
-                  )}
+                  <div className='flex gap-2 items-center border-r border-gray-500 pr-3 text-white'>
+                    <button onClick={handlePrevious} data-testid='button-previous'>
+                      <span>Previous</span>
+                    </button>
+                  </div>
                   <button
                     disabled={!businessEventName}
                     onClick={handleNext}
