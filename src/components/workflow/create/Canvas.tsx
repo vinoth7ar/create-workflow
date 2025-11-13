@@ -210,9 +210,11 @@ FlowCanvas.displayName = 'FlowCanvas';
 
 export const Canvas = forwardRef<CanvasRef, CanvasProps>((props, ref) => {
   return (
-    <div className='flex-1 relative'>
+    <div className='flex-1 relative min-h-0'>
       <ReactFlowProvider>
-        <FlowCanvas {...props} ref={ref} />
+        <div className='w-full h-full absolute inset-0'>
+          <FlowCanvas {...props} ref={ref} />
+        </div>
       </ReactFlowProvider>
     </div>
   );
