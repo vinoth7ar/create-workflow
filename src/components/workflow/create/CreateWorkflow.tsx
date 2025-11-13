@@ -823,38 +823,36 @@ export const CreateWorkflow = () => {
           onDrop={onDrop}
           onDragOver={onDragOver}
         />
-        {!isFocusMode && (
-          <NodeEditorSidebar
-            selectedNode={selectedNode}
-            edges={edges}
-            businessEvent={currentNodeData.businessEvent}
-            businessEventName={currentNodeData.businessEventName}
-            condition={currentNodeData.condition}
-            description={currentNodeData.description}
-            automaticTrigger={currentNodeData.automaticTrigger}
-            externalTrigger={currentNodeData.externalTrigger}
-            focalEntity={currentNodeData.focalEntity}
-            createdEntities={currentNodeData.createdEntities}
-            modifiedEntities={currentNodeData.modifiedEntities}
-            onBusinessEventChange={handleBusinessEventChange}
-            onBusinessEventNameChange={handleBusinessEventNameChange}
-            onConditionChange={handleConditionChange}
-            onDescriptionChange={handleDescriptionChange}
-            onAutomaticTriggerChange={handleAutomaticTriggerChange}
-            onExternalTriggerChange={handleExternalTriggerChange}
-            onFocalEntityChange={handleFocalEntityChange}
-            onCreatedEntitiesChange={handleCreatedEntitiesChange}
-            onModifiedEntitiesChange={handleModifiedEntitiesChange}
-            onCreateNew={handleCreateNew}
-            onDone={() => setSelectedNode(null)}
-            onDelete={handleNodeDelete}
-            isCollapsed={isCollapsed}
-            isDragging={isDragging}
-            position={position}
-            onToggleCollapse={toggleCollapse}
-            onDragStart={handleDragStart}
-          />
-        )}
+        <NodeEditorSidebar
+          selectedNode={selectedNode}
+          edges={edges}
+          businessEvent={currentNodeData.businessEvent}
+          businessEventName={currentNodeData.businessEventName}
+          condition={currentNodeData.condition}
+          description={currentNodeData.description}
+          automaticTrigger={currentNodeData.automaticTrigger}
+          externalTrigger={currentNodeData.externalTrigger}
+          focalEntity={currentNodeData.focalEntity}
+          createdEntities={currentNodeData.createdEntities}
+          modifiedEntities={currentNodeData.modifiedEntities}
+          onBusinessEventChange={handleBusinessEventChange}
+          onBusinessEventNameChange={handleBusinessEventNameChange}
+          onConditionChange={handleConditionChange}
+          onDescriptionChange={handleDescriptionChange}
+          onAutomaticTriggerChange={handleAutomaticTriggerChange}
+          onExternalTriggerChange={handleExternalTriggerChange}
+          onFocalEntityChange={handleFocalEntityChange}
+          onCreatedEntitiesChange={handleCreatedEntitiesChange}
+          onModifiedEntitiesChange={handleModifiedEntitiesChange}
+          onCreateNew={handleCreateNew}
+          onDone={() => setSelectedNode(null)}
+          onDelete={handleNodeDelete}
+          isCollapsed={isCollapsed}
+          isDragging={isDragging}
+          position={position}
+          onToggleCollapse={toggleCollapse}
+          onDragStart={handleDragStart}
+        />
       </div>
 
       <FocusButton isFocusMode={isFocusMode} onToggleFocus={toggleFocusMode} />
