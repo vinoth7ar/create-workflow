@@ -9,9 +9,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Connection, Edge, FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 import './CreateWorkflow.scss';
-import { useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
-// MODULAR IMPORT: Focus mode utility
-import { applyFocusMode, getFocusModeClasses } from './utils/focusModeUtils';
+import { useEffect, useImperativeHandle, forwardRef } from 'react';
 
 interface CanvasProps {
   nodes: FlowNode[];
@@ -35,9 +33,6 @@ interface CanvasProps {
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onNodeAdded?: () => void;
-  // MODULAR PROPS: New focus mode and drag toggle
-  isFocusMode?: boolean;
-  isDragEnabled?: boolean;
 }
 
 export interface CanvasRef {
@@ -65,17 +60,10 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
       onDrop,
       onDragOver,
       onNodeAdded,
-      // MODULAR PROPS: New focus mode and drag toggle
-      isFocusMode = false,
-      isDragEnabled = true,
     },
     ref
   ) => {
     const { fitView, getNode } = useReactFlow();
-    const reactFlowInstance = useReactFlow();
-
-    // MODULAR FEATURE: Store previous viewport when entering focus mode
-    const previousViewportRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
 
     useImperativeHandle(ref, () => ({
       centerView: (nodeId?: string) => {
@@ -112,30 +100,6 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
         onNodeAdded();
       }
     }, [nodes.length, onNodeAdded]);
-
-    // MODULAR FEATURE: Apply focus mode when toggled
-    useEffect(() => {
-      if (!reactFlowInstance) return; // Guard against null instance
-
-      if (isFocusMode) {
-        // Only store viewport ONCE when first entering focus mode
-        // Prevent subsequent node/edge updates from overwriting the saved viewport
-        if (!previousViewportRef.current) {
-          const viewport = reactFlowInstance.getViewport();
-          previousViewportRef.current = viewport;
-        }
-
-        // Apply focus mode (can be reapplied on node/edge changes)
-        applyFocusMode(reactFlowInstance, nodes, edges);
-      } else if (previousViewportRef.current) {
-        // Restore previous viewport when exiting focus mode
-        reactFlowInstance.setViewport(previousViewportRef.current, { duration: 300 });
-        previousViewportRef.current = null;
-      }
-    }, [isFocusMode, reactFlowInstance, nodes, edges]);
-
-    // MODULAR FEATURE: Get CSS classes for focus mode
-    const focusClasses = getFocusModeClasses(isFocusMode);
     const isValidConnection = (connection: Connection): boolean => {
       const sourceNode = nodes.find((n) => n.id === connection.source);
       const targetNode = nodes.find((n) => n.id === connection.target);
@@ -167,11 +131,7 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
     };
 
     return (
-      <>
-        {/* MODULAR FEATURE: Focus mode overlay */}
-        {isFocusMode && <div className={focusClasses.overlay} />}
-
-        <ReactFlow
+      <ReactFlow
           nodes={nodes.map((node: any) => {
             const isHighlighted =
               highlightedElements.nodeId === node.id ||
@@ -225,13 +185,13 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
-          nodesDraggable={isDragEnabled}
+          nodesDraggable={true}
           isValidConnection={isValidConnection}
           connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2 }}
           fitView
           snapToGrid
           snapGrid={[15, 15]}
-          className={`bg-white ${focusClasses.canvas}`}
+          className='bg-white'
         >
           <Background variant={BackgroundVariant.Dots} color='#8ABFC7' gap={15} size={1} />
           <Controls
@@ -242,7 +202,6 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
             showInteractive={false}
           />
         </ReactFlow>
-      </>
     );
   }
 );

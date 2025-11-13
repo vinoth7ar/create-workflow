@@ -12,9 +12,6 @@ interface SidebarProps {
   onDragStart: (e: React.DragEvent, nodeType: string) => void;
   onSaveDraft: () => void;
   onPublishDraft: () => void;
-  // MODULAR PROPS: New collapsible functionality
-  isCollapsed?: boolean;
-  isDragEnabled?: boolean;
 }
 
 export const Sidebar = ({
@@ -28,23 +25,13 @@ export const Sidebar = ({
   onDragStart,
   onSaveDraft,
   onPublishDraft,
-  // MODULAR PROPS: New collapsible functionality
-  isCollapsed = false,
-  isDragEnabled = true,
 }: SidebarProps) => {
-  const isEventDisabled =
-    (autoPositioning && lastNodeType === NODE_TYPES.EVENT) || !isDragEnabled;
+  const isEventDisabled = autoPositioning && lastNodeType === NODE_TYPES.EVENT;
   const isStateDisabled =
-    (autoPositioning && (lastNodeType === NODE_TYPES.STATUS || lastNodeType === NODE_TYPES.START)) ||
-    !isDragEnabled;
+    autoPositioning && (lastNodeType === NODE_TYPES.STATUS || lastNodeType === NODE_TYPES.START);
 
   return (
-    <div
-      className={`bg-white border-r border-gray-300 flex flex-col transition-all duration-300 ease-in-out ${
-        isCollapsed ? 'w-0 -ml-80' : 'w-80'
-      }`}
-      style={{ overflow: isCollapsed ? 'hidden' : 'visible' }}
-    >
+    <div className='w-80 bg-white border-r border-gray-300 flex flex-col'>
       <div className='p-4 border-b border-gray-600'>
         <button className='flex items-center text-gray-600 hover:text-gray-800 mb-4'>
           <span className='text-sm'>← Back</span>
