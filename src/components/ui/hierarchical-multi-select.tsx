@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronRight, ChevronLeft } from "@mui/icons-material";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronRight, ChevronLeft } from '@mui/icons-material';
+import { cn } from '@/lib/utils';
 
 export interface HierarchicalOption {
   value: string;
@@ -24,7 +24,7 @@ export function HierarchicalMultiSelect({
   options,
   value = [],
   onChange,
-  placeholder = "Select options",
+  placeholder = 'Select options',
   className,
   disabled = false,
   onCreateNew,
@@ -57,7 +57,8 @@ export function HierarchicalMultiSelect({
   }
 
   const allTerminalValues = getAllTerminalValues(options);
-  const isAllSelected = allTerminalValues.length > 0 && allTerminalValues.every(v => value.includes(v));
+  const isAllSelected =
+    allTerminalValues.length > 0 && allTerminalValues.every((v) => value.includes(v));
 
   const handleToggle = (optionValue: string) => {
     if (optionValue === 'select-all') {
@@ -73,7 +74,7 @@ export function HierarchicalMultiSelect({
       }
     } else {
       const newValue = value.includes(optionValue)
-        ? value.filter(v => v !== optionValue)
+        ? value.filter((v) => v !== optionValue)
         : [...value, optionValue];
       onChange(newValue);
     }
@@ -94,63 +95,62 @@ export function HierarchicalMultiSelect({
     }
   };
 
-  const displayText = value.length > 0 
-    ? `${value.length} selected` 
-    : placeholder;
+  const displayText = value.length > 0 ? `${value.length} selected` : placeholder;
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
-          role="combobox"
+          variant='outline'
+          role='combobox'
           aria-expanded={open}
-          className={cn("w-full justify-between", className)}
+          className={cn('w-full justify-between', className)}
           disabled={disabled}
-          data-testid="hierarchical-multi-select-trigger"
+          data-testid='hierarchical-multi-select-trigger'
         >
-          <span className="truncate">{displayText}</span>
-          <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className='truncate'>{displayText}</span>
+          <ChevronRight className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <div className="flex flex-col max-h-[300px]">
+      <PopoverContent className='w-80 p-0' align='start'>
+        <div className='flex flex-col max-h-[300px]'>
           {breadcrumb.length > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/50">
+            <div className='flex items-center gap-2 px-3 py-2 border-b bg-muted/50'>
               <Button
-                variant="ghost"
-                size="sm"
+                variant='ghost'
+                size='sm'
                 onClick={handleBack}
-                className="h-6 px-2"
-                data-testid="hierarchical-multi-select-back"
+                className='h-6 px-2'
+                data-testid='hierarchical-multi-select-back'
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className='h-4 w-4' />
               </Button>
-              <span className="text-sm text-muted-foreground truncate">
-                {breadcrumb.join(" > ")}
+              <span className='text-sm text-muted-foreground truncate'>
+                {breadcrumb.join(' > ')}
               </span>
             </div>
           )}
-          <div className="overflow-y-auto">
+          <div className='overflow-y-auto'>
             {currentOptions.map((option) => {
-              const isSpecialOption = option.value === 'select-all' || option.value === 'create-new';
+              const isSpecialOption =
+                option.value === 'select-all' || option.value === 'create-new';
               const isSelectAll = option.value === 'select-all';
               const isCreateNew = option.value === 'create-new';
               const hasChildren = option.children && option.children.length > 0;
-              
+
               return (
                 <div
                   key={option.value}
-                  className="flex items-center px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className='flex items-center px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors'
                 >
                   {hasChildren ? (
                     <button
                       onClick={() => handleNavigate(option)}
-                      className="flex items-center justify-between w-full"
+                      className='flex items-center justify-between w-full'
                       data-testid={`hierarchical-multi-select-option-${option.value}`}
                     >
-                      <span className="text-sm">{option.label}</span>
-                      <ChevronRight className="h-4 w-4 opacity-50" />
+                      <span className='text-sm'>{option.label}</span>
+                      <ChevronRight className='h-4 w-4 opacity-50' />
                     </button>
                   ) : isCreateNew ? (
                     <button
@@ -162,21 +162,21 @@ export function HierarchicalMultiSelect({
                           setBreadcrumb([]);
                         }
                       }}
-                      className="flex items-center gap-2 cursor-pointer flex-1 text-sm text-primary"
+                      className='flex items-center gap-2 cursor-pointer flex-1 text-sm text-primary'
                       data-testid={`hierarchical-multi-select-create-new`}
                     >
-                      <span className="text-sm font-medium">{option.label}</span>
+                      <span className='text-sm font-medium'>{option.label}</span>
                     </button>
                   ) : (
-                    <label className="flex items-center gap-2 cursor-pointer flex-1">
+                    <label className='flex items-center gap-2 cursor-pointer flex-1'>
                       <input
-                        type="checkbox"
+                        type='checkbox'
                         checked={isSelectAll ? isAllSelected : value.includes(option.value)}
                         onChange={() => handleToggle(option.value)}
-                        className="w-4 h-4"
+                        className='w-4 h-4'
                         data-testid={`hierarchical-multi-select-checkbox-${option.value}`}
                       />
-                      <span className="text-sm">{option.label}</span>
+                      <span className='text-sm'>{option.label}</span>
                     </label>
                   )}
                 </div>

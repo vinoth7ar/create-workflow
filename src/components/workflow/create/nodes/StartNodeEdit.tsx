@@ -31,9 +31,7 @@ const StartNodeEdit: React.FC<StartNodeEditProps> = ({ id, data }) => {
       {data.showGhostEdge && <span className='w-20 border-b border-gray-400' />}
       <button
         className={`w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center transition-all shadow-md ${
-          data.showGhostEdge
-            ? 'hover:bg-gray-500'
-            : 'opacity-0 hover:opacity-100 hover:bg-gray-500'
+          data.showGhostEdge ? 'hover:bg-gray-500' : 'opacity-0 hover:opacity-100 hover:bg-gray-500'
         }`}
         onClick={handlePlusClick}
         title='Add Transition Block'

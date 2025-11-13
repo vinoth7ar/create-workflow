@@ -42,8 +42,8 @@ const StatusNodeEdit = ({ data, selected, id }: StatusNodeEditProps) => {
             isValidTarget
               ? 'bg-green-500 border-green-600'
               : data.isConnecting
-              ? 'bg-gray-300 border-gray-400 opacity-50'
-              : 'bg-gray-400 border-gray-500'
+                ? 'bg-gray-300 border-gray-400 opacity-50'
+                : 'bg-gray-400 border-gray-500'
           }`}
         />
         <div className='text-xs font-medium text-gray-800 text-center px-1'>{data.label}</div>

@@ -237,7 +237,7 @@ export const NodeEditorSidebar = ({
                       onBusinessEventChange(value, label || value);
                       onBusinessEventNameChange(label || value);
                     }}
-                    placeholder="Select business event(s) and/or subworkflow(s)"
+                    placeholder='Select business event(s) and/or subworkflow(s)'
                     onCreateNew={onCreateNew}
                     data-testid='select-business-event'
                   />
@@ -322,7 +322,10 @@ export const NodeEditorSidebar = ({
                   </label>
                   <div className='space-y-2'>
                     {createdEntities.map((entity, index) => (
-                      <div key={index} className='flex items-center gap-2 bg-white px-3 py-2 rounded border border-gray-300'>
+                      <div
+                        key={index}
+                        className='flex items-center gap-2 bg-white px-3 py-2 rounded border border-gray-300'
+                      >
                         <span className='flex-1 text-sm text-gray-800'>{entity}</span>
                         <button
                           onClick={() => {
@@ -352,7 +355,10 @@ export const NodeEditorSidebar = ({
                   </label>
                   <div className='space-y-2'>
                     {modifiedEntities.map((entity, index) => (
-                      <div key={index} className='flex items-center gap-2 bg-white px-3 py-2 rounded border border-gray-300'>
+                      <div
+                        key={index}
+                        className='flex items-center gap-2 bg-white px-3 py-2 rounded border border-gray-300'
+                      >
                         <span className='flex-1 text-sm text-gray-800'>{entity}</span>
                         <button
                           onClick={() => {

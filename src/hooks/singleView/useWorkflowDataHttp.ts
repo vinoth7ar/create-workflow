@@ -7,17 +7,17 @@ export const useWorkflowDataHttp = (fallbackWorkflowId: string) => {
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
-  
+
   useEffect(() => {
     // For now, return mock data - this would typically fetch from an API
     setWorkflowData(null); // Will use fallback data
   }, [fallbackWorkflowId]);
-  
+
   return {
     data: workflowData,
     error,
     isError,
     isLoading,
-    isFetching
+    isFetching,
   };
 };

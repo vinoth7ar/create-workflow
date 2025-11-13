@@ -69,44 +69,6 @@ export const Sidebar = ({
         </div>
       </div>
 
-      <div className='p-4 border-t border-gray-600'>
-        <div className='flex gap-3'>
-          <button
-            onClick={onSaveDraft}
-            className='flex-1 px-4 py-2 border border-gray-400 text-gray-700 rounded hover:bg-gray-50 transition-colors'
-            data-testid='button-save-draft'
-          >
-            Save Draft
-          </button>
-          <button
-            onClick={onPublishDraft}
-            className='flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors'
-            data-testid='button-publish-draft'
-          >
-            Publish Draft
-          </button>
-        </div>
-      </div>
-
-      <div className='p-4 border-t border-gray-600'>
-        <div className='flex gap-3'>
-          <button
-            onClick={onSaveDraft}
-            className='flex-1 px-4 py-2 border border-gray-400 text-gray-700 rounded hover:bg-gray-50 transition-colors'
-            data-testid='button-save-draft'
-          >
-            Save Draft
-          </button>
-          <button
-            onClick={onPublishDraft}
-            className='flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors'
-            data-testid='button-publish-draft'
-          >
-            Publish Draft
-          </button>
-        </div>
-      </div>
-
       {/* Component Palette */}
       <div className='p-4 flex-1'>
         <p className='text-sm text-gray-600 mb-4'>
@@ -156,22 +118,17 @@ export const Sidebar = ({
         <div className='flex items-center justify-between mt-6'>
           <span className='text-sm font-bold text-gray-700'>Auto-positioning</span>
           <button
-            className='flex items-center justify-between mt-6'
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              autoPositioning ? 'bg-blue-600' : 'bg-gray-300'
+            }`}
             onClick={() => onAutoPositioningChange(!autoPositioning)}
+            data-testid='toggle-auto-positioning'
           >
-            <span className='text-sm font-bold text-gray-700'>Auto-positioning</span>
-            <button
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                autoPositioning ? 'bg-blue-600' : 'bg-gray-300'
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                autoPositioning ? 'translate-x-6' : 'translate-x-1'
               }`}
-              data-testid='toggle-auto-positioning'
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  autoPositioning ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            />
           </button>
         </div>
       </div>
@@ -197,5 +154,3 @@ export const Sidebar = ({
     </div>
   );
 };
-
-export default Sidebar;

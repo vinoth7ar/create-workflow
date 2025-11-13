@@ -4,7 +4,7 @@ export enum ValidationErrorType {
   // Workflow level
   EMPTY_WORKFLOW_NAME = 'EMPTY_WORKFLOW_NAME',
   EMPTY_WORKFLOW = 'EMPTY_WORKFLOW',
-  
+
   // EVENT node level
   MISSING_BUSINESS_EVENT = 'MISSING_BUSINESS_EVENT',
   MISSING_CONDITION = 'MISSING_CONDITION',
@@ -14,15 +14,15 @@ export enum ValidationErrorType {
   MISSING_DESCRIPTION = 'MISSING_DESCRIPTION',
   EMPTY_CREATED_ENTITIES = 'EMPTY_CREATED_ENTITIES',
   EMPTY_MODIFIED_ENTITIES = 'EMPTY_MODIFIED_ENTITIES',
-  
+
   // STATUS node level
   MISSING_STATE_NAME = 'MISSING_STATE_NAME',
-  
+
   // Connection/Edge level
   DEAD_END_NODE = 'DEAD_END_NODE',
   UNCONNECTED_NODE = 'UNCONNECTED_NODE',
   START_NOT_CONNECTED = 'START_NOT_CONNECTED',
-  
+
   // Advanced
   CIRCULAR_REFERENCE = 'CIRCULAR_REFERENCE',
   UNREACHABLE_NODE = 'UNREACHABLE_NODE',
@@ -56,8 +56,10 @@ export interface ValidationResult {
 
 const getNodeName = (node: CreateWorkflowNode): string => {
   if (node.type === NODE_TYPES.START) return 'Start';
-  if (node.type === NODE_TYPES.STATUS) return node.data.businessEventName || node.data.label || 'Unnamed State';
-  if (node.type === NODE_TYPES.EVENT) return node.data.businessEventName || node.data.label || 'Unnamed Transition Block';
+  if (node.type === NODE_TYPES.STATUS)
+    return node.data.businessEventName || node.data.label || 'Unnamed State';
+  if (node.type === NODE_TYPES.EVENT)
+    return node.data.businessEventName || node.data.label || 'Unnamed Transition Block';
   return 'Unnamed Node';
 };
 
@@ -78,13 +80,11 @@ const validateWorkflowMetadata = (
   return errors;
 };
 
-const validateEmptyWorkflow = (
-  nodes: CreateWorkflowNode[]
-): ValidationError[] => {
+const validateEmptyWorkflow = (nodes: CreateWorkflowNode[]): ValidationError[] => {
   const errors: ValidationError[] = [];
-  
-  const nonStartNodes = nodes.filter(node => node.type !== NODE_TYPES.START);
-  
+
+  const nonStartNodes = nodes.filter((node) => node.type !== NODE_TYPES.START);
+
   if (nonStartNodes.length === 0) {
     errors.push({
       type: ValidationErrorType.EMPTY_WORKFLOW,
@@ -226,11 +226,11 @@ const validateConnectivity = (
 ): ValidationError[] => {
   const errors: ValidationError[] = [];
   const isPublish = mode === ValidationMode.PUBLISH;
-  
-  const startNode = nodes.find(node => node.type === NODE_TYPES.START);
+
+  const startNode = nodes.find((node) => node.type === NODE_TYPES.START);
   if (!startNode) return errors;
 
-  const outgoingConnections = edges.filter(edge => edge.source === startNode.id);
+  const outgoingConnections = edges.filter((edge) => edge.source === startNode.id);
   if (outgoingConnections.length === 0) {
     errors.push({
       type: ValidationErrorType.START_NOT_CONNECTED,
@@ -241,10 +241,10 @@ const validateConnectivity = (
     });
   }
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (node.type === NODE_TYPES.START) return;
 
-    const hasIncoming = edges.some(edge => edge.target === node.id);
+    const hasIncoming = edges.some((edge) => edge.target === node.id);
     if (!hasIncoming) {
       errors.push({
         type: ValidationErrorType.UNCONNECTED_NODE,
@@ -255,7 +255,7 @@ const validateConnectivity = (
       });
     }
 
-    const hasOutgoing = edges.some(edge => edge.source === node.id);
+    const hasOutgoing = edges.some((edge) => edge.source === node.id);
     if (!hasOutgoing) {
       errors.push({
         type: ValidationErrorType.DEAD_END_NODE,
@@ -272,26 +272,23 @@ const validateConnectivity = (
   return errors;
 };
 
-const findReachableNodes = (
-  startNodeId: string,
-  edges: CreateWorkflowEdge[]
-): Set<string> => {
+const findReachableNodes = (startNodeId: string, edges: CreateWorkflowEdge[]): Set<string> => {
   const reachable = new Set<string>();
   const queue = [startNodeId];
-  
+
   while (queue.length > 0) {
     const currentId = queue.shift()!;
     if (reachable.has(currentId)) continue;
-    
+
     reachable.add(currentId);
-    
+
     const connectedNodes = edges
-      .filter(edge => edge.source === currentId)
-      .map(edge => edge.target);
-    
+      .filter((edge) => edge.source === currentId)
+      .map((edge) => edge.target);
+
     queue.push(...connectedNodes);
   }
-  
+
   return reachable;
 };
 
@@ -300,15 +297,15 @@ const validateReachability = (
   edges: CreateWorkflowEdge[]
 ): ValidationError[] => {
   const errors: ValidationError[] = [];
-  
-  const startNode = nodes.find(node => node.type === NODE_TYPES.START);
+
+  const startNode = nodes.find((node) => node.type === NODE_TYPES.START);
   if (!startNode) return errors;
 
   const reachableNodeIds = findReachableNodes(startNode.id, edges);
-  
-  nodes.forEach(node => {
+
+  nodes.forEach((node) => {
     if (node.type === NODE_TYPES.START) return;
-    
+
     if (!reachableNodeIds.has(node.id)) {
       errors.push({
         type: ValidationErrorType.UNREACHABLE_NODE,
@@ -330,13 +327,13 @@ const detectCycles = (
   const errors: ValidationError[] = [];
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
-  
+
   const hasCycle = (nodeId: string): boolean => {
     visited.add(nodeId);
     recursionStack.add(nodeId);
-    
-    const outgoingEdges = edges.filter(edge => edge.source === nodeId);
-    
+
+    const outgoingEdges = edges.filter((edge) => edge.source === nodeId);
+
     for (const edge of outgoingEdges) {
       if (!visited.has(edge.target)) {
         if (hasCycle(edge.target)) return true;
@@ -344,24 +341,25 @@ const detectCycles = (
         return true;
       }
     }
-    
+
     recursionStack.delete(nodeId);
     return false;
   };
-  
+
   for (const node of nodes) {
     if (!visited.has(node.id)) {
       if (hasCycle(node.id)) {
         errors.push({
           type: ValidationErrorType.CIRCULAR_REFERENCE,
           severity: ValidationErrorSeverity.WARNING,
-          message: 'Workflow contains circular references (loops). This may cause infinite execution.',
+          message:
+            'Workflow contains circular references (loops). This may cause infinite execution.',
         });
         break;
       }
     }
   }
-  
+
   return errors;
 };
 
@@ -376,23 +374,23 @@ export const validateWorkflow = (
 
   allErrors.push(...validateWorkflowMetadata(workflowName, workflowDescription));
   allErrors.push(...validateEmptyWorkflow(nodes));
-  
+
   if (nodes.length > 1) {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.type === NODE_TYPES.EVENT) {
         allErrors.push(...validateEventNode(node, mode));
       } else if (node.type === NODE_TYPES.STATUS) {
         allErrors.push(...validateStatusNode(node));
       }
     });
-    
+
     allErrors.push(...validateConnectivity(nodes, edges, mode));
     allErrors.push(...validateReachability(nodes, edges));
     allErrors.push(...detectCycles(nodes, edges));
   }
 
-  const errors = allErrors.filter(e => e.severity === ValidationErrorSeverity.ERROR);
-  const warnings = allErrors.filter(e => e.severity === ValidationErrorSeverity.WARNING);
+  const errors = allErrors.filter((e) => e.severity === ValidationErrorSeverity.ERROR);
+  const warnings = allErrors.filter((e) => e.severity === ValidationErrorSeverity.WARNING);
 
   return {
     isValid: errors.length === 0,

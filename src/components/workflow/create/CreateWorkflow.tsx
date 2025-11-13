@@ -510,7 +510,15 @@ export const CreateWorkflow = () => {
         // Ghost edge will be hidden by the useEffect that monitors edges
       }
     },
-    [setNodes, setEdges, nodes, autoPositioning, generateUniqueId, setSelectedNode]
+    [
+      setNodes,
+      setEdges,
+      nodes,
+      autoPositioning,
+      generateUniqueId,
+      setSelectedNode,
+      findNonCollidingPosition,
+    ]
   );
 
   // ==================== EVENT HANDLERS ====================
@@ -755,9 +763,8 @@ export const CreateWorkflow = () => {
         autoPositioning={autoPositioning}
         lastNodeType={
           nodes.length > 0
-            ? nodes.reduce(
-                (prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
-                  prev.position.x > current.position.x ? prev : current
+            ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
+                prev.position.x > current.position.x ? prev : current
               ).type
             : null
         }

@@ -2,6 +2,8 @@
 // CreateWorkflow.scss - Styling
 // ============================================================================
 
+@use 'sass:color';
+
 .input-field {
   width: 100%;
   padding: 8px 12px;
@@ -73,7 +75,7 @@
   color: var(--Generic-White, #ffff);
 
   &:hover {
-    background: darken(#183567, 5%);
+    background: color.adjust(#183567, $lightness: -5%);
   }
 }
 

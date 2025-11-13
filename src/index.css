@@ -144,7 +144,7 @@ All colors MUST be HSL.
 
 /* Workflow Editor Custom Styles */
 .workflow-canvas {
-  background: linear-gradient(135deg, #FEF7E0 0%, #FDF2E9 50%, #FCE7D4 100%);
+  background: linear-gradient(135deg, #fef7e0 0%, #fdf2e9 50%, #fce7d4 100%);
 }
 
 .workflow-canvas .react-flow__node {
