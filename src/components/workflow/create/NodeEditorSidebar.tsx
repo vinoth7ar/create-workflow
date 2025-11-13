@@ -1,7 +1,8 @@
 import { HierarchicalSelect } from '@/components/ui/hierarchical-select';
 import { useState, useEffect } from 'react';
-import { ChevronDoubleUp, DragReorder, TrashIcon } from '@/assets';
+import { DragReorder, TrashIcon } from '@/assets';
 import { HierarchicalOption, NODE_TYPES } from '@/models/singleView/nodeTypes';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Tag Component for displaying selected items
 const Tag = ({
@@ -139,6 +140,11 @@ interface NodeEditorSidebarProps {
   onCreateNew: () => void;
   onDelete: () => void;
   onDone: () => void;
+  isCollapsed?: boolean;
+  isDragging?: boolean;
+  position?: { x: number; y: number };
+  onToggleCollapse?: () => void;
+  onDragStart?: (e: React.MouseEvent) => void;
 }
 
 enum WizardStep {
@@ -172,6 +178,11 @@ export const NodeEditorSidebar = ({
   onCreateNew,
   onDelete,
   onDone,
+  isCollapsed = false,
+  isDragging = false,
+  position = { x: 0, y: 0 },
+  onToggleCollapse = () => {},
+  onDragStart = () => {},
 }: NodeEditorSidebarProps) => {
   const [currentStep, setCurrentStep] = useState(WizardStep.TRANSITION_PANEL);
 
@@ -211,15 +222,56 @@ export const NodeEditorSidebar = ({
   const buttonLabel = isLastStep || (isLastStep && hasConnectedNodeAfter) ? 'Next' : 'Done';
 
   return (
-    <div className='w-[21rem] bg-gray-800 text-white flex flex-col shadow-2xl'>
+    <div
+      className={`bg-gray-800 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'w-12' : 'w-[21rem]'
+      } ${isDragging ? 'cursor-grabbing' : ''}`}
+      style={
+        position.x !== 0 || position.y !== 0
+          ? {
+              position: 'fixed',
+              right: 'auto',
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              height: '100%',
+              zIndex: 40,
+            }
+          : {}
+      }
+    >
       <div className='p-4 border-b border-gray-600 flex items-center justify-between'>
-        <ChevronDoubleUp />
-        <DragReorder />
-
-        <button className='text-gray-400 hover:text-red-500 transition-color' onClick={onDelete}>
-          <TrashIcon />
+        <button
+          onClick={onToggleCollapse}
+          className='text-gray-400 hover:text-white transition-colors'
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          data-testid='button-toggle-collapse'
+        >
+          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
+
+        {!isCollapsed && (
+          <>
+            <button
+              onMouseDown={onDragStart}
+              className='text-gray-400 hover:text-white transition-colors cursor-grab active:cursor-grabbing'
+              title='Drag to reposition sidebar'
+              data-testid='button-drag-handle'
+            >
+              <DragReorder />
+            </button>
+
+            <button
+              className='text-gray-400 hover:text-red-500 transition-color'
+              onClick={onDelete}
+              data-testid='button-delete-node'
+            >
+              <TrashIcon />
+            </button>
+          </>
+        )}
       </div>
+
+      {!isCollapsed && (
 
       <div className='flex-1 p-6 space-y-6 overflow-y-auto'>
         {isTransitionBlock && (
@@ -448,6 +500,7 @@ export const NodeEditorSidebar = ({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -13,6 +13,8 @@ import {
   FlowNode,
   NODE_TYPES,
 } from '@/models/singleView/nodeTypes';
+import { useNodeEditorControls } from './hooks/useNodeEditorControls';
+import { FocusButton } from './components/FocusButton';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -26,6 +28,31 @@ export const CreateWorkflow = () => {
     nodeIds?: string[];
     edgeIds: string[];
   }>({ edgeIds: [] });
+
+  // MODULAR HOOK: Node editor sidebar controls
+  const {
+    isCollapsed,
+    isFocusMode,
+    isDragging,
+    position,
+    toggleCollapse,
+    toggleFocusMode,
+    handleDragStart,
+    handleDragMove,
+    handleDragEnd,
+  } = useNodeEditorControls();
+
+  // Mouse event listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, handleDragMove, handleDragEnd]);
 
   // initiate a default, none removable start node
   const startNodeRef = useRef<CreateWorkflowNode>({
@@ -757,24 +784,26 @@ export const CreateWorkflow = () => {
 
   return (
     <div className='h-full overflow-y-auto flex bg-gray-100'>
-      <Sidebar
-        workflowName={workflowName}
-        workflowDescription={workflowDescription}
-        autoPositioning={autoPositioning}
-        lastNodeType={
-          nodes.length > 0
-            ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
-                prev.position.x > current.position.x ? prev : current
-              ).type
-            : null
-        }
-        onWorkflowNameChange={setWorkflowName}
-        onWorkflowDescriptionChange={setWorkflowDescription}
-        onAutoPositioningChange={setAutoPositioning}
-        onDragStart={onDragStart}
-        onSaveDraft={handleSaveDraft}
-        onPublishDraft={handlePublishDraft}
-      />
+      {!isFocusMode && (
+        <Sidebar
+          workflowName={workflowName}
+          workflowDescription={workflowDescription}
+          autoPositioning={autoPositioning}
+          lastNodeType={
+            nodes.length > 0
+              ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
+                  prev.position.x > current.position.x ? prev : current
+                ).type
+              : null
+          }
+          onWorkflowNameChange={setWorkflowName}
+          onWorkflowDescriptionChange={setWorkflowDescription}
+          onAutoPositioningChange={setAutoPositioning}
+          onDragStart={onDragStart}
+          onSaveDraft={handleSaveDraft}
+          onPublishDraft={handlePublishDraft}
+        />
+      )}
       <Canvas
         ref={canvasRef}
         nodes={nodesWithConnectionState}
@@ -793,31 +822,40 @@ export const CreateWorkflow = () => {
         onDrop={onDrop}
         onDragOver={onDragOver}
       />
-      <NodeEditorSidebar
-        selectedNode={selectedNode}
-        edges={edges}
-        businessEvent={currentNodeData.businessEvent}
-        businessEventName={currentNodeData.businessEventName}
-        condition={currentNodeData.condition}
-        description={currentNodeData.description}
-        automaticTrigger={currentNodeData.automaticTrigger}
-        externalTrigger={currentNodeData.externalTrigger}
-        focalEntity={currentNodeData.focalEntity}
-        createdEntities={currentNodeData.createdEntities}
-        modifiedEntities={currentNodeData.modifiedEntities}
-        onBusinessEventChange={handleBusinessEventChange}
-        onBusinessEventNameChange={handleBusinessEventNameChange}
-        onConditionChange={handleConditionChange}
-        onDescriptionChange={handleDescriptionChange}
-        onAutomaticTriggerChange={handleAutomaticTriggerChange}
-        onExternalTriggerChange={handleExternalTriggerChange}
-        onFocalEntityChange={handleFocalEntityChange}
-        onCreatedEntitiesChange={handleCreatedEntitiesChange}
-        onModifiedEntitiesChange={handleModifiedEntitiesChange}
-        onCreateNew={handleCreateNew}
-        onDone={() => setSelectedNode(null)}
-        onDelete={handleNodeDelete}
-      />
+      {!isFocusMode && (
+        <NodeEditorSidebar
+          selectedNode={selectedNode}
+          edges={edges}
+          businessEvent={currentNodeData.businessEvent}
+          businessEventName={currentNodeData.businessEventName}
+          condition={currentNodeData.condition}
+          description={currentNodeData.description}
+          automaticTrigger={currentNodeData.automaticTrigger}
+          externalTrigger={currentNodeData.externalTrigger}
+          focalEntity={currentNodeData.focalEntity}
+          createdEntities={currentNodeData.createdEntities}
+          modifiedEntities={currentNodeData.modifiedEntities}
+          onBusinessEventChange={handleBusinessEventChange}
+          onBusinessEventNameChange={handleBusinessEventNameChange}
+          onConditionChange={handleConditionChange}
+          onDescriptionChange={handleDescriptionChange}
+          onAutomaticTriggerChange={handleAutomaticTriggerChange}
+          onExternalTriggerChange={handleExternalTriggerChange}
+          onFocalEntityChange={handleFocalEntityChange}
+          onCreatedEntitiesChange={handleCreatedEntitiesChange}
+          onModifiedEntitiesChange={handleModifiedEntitiesChange}
+          onCreateNew={handleCreateNew}
+          onDone={() => setSelectedNode(null)}
+          onDelete={handleNodeDelete}
+          isCollapsed={isCollapsed}
+          isDragging={isDragging}
+          position={position}
+          onToggleCollapse={toggleCollapse}
+          onDragStart={handleDragStart}
+        />
+      )}
+
+      <FocusButton isFocusMode={isFocusMode} onToggleFocus={toggleFocusMode} />
     </div>
   );
 };
