@@ -224,7 +224,7 @@ export const NodeEditorSidebar = ({
   return (
     <div
       className={`bg-gray-800 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${
-        isCollapsed ? 'w-12 h-16' : 'w-[21rem] h-full'
+        isCollapsed ? 'w-12 h-16' : 'w-[21rem]'
       } ${isDragging ? 'cursor-grabbing' : ''}`}
       style={
         position.x !== 0 || position.y !== 0
@@ -233,6 +233,7 @@ export const NodeEditorSidebar = ({
               right: 'auto',
               left: `${position.x}px`,
               top: `${position.y}px`,
+              height: isCollapsed ? '4rem' : '100%',
               zIndex: 40,
             }
           : isCollapsed
@@ -242,7 +243,7 @@ export const NodeEditorSidebar = ({
                 right: '1rem',
                 zIndex: 40,
               }
-            : {}
+            : { height: '100%' }
       }
     >
       <div className='p-4 border-b border-gray-600 flex items-center justify-between'>
