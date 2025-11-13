@@ -80,14 +80,45 @@ export const CreateWorkflow = () => {
   // Track previous focus mode to detect transitions
   const prevFocusModeRef = useRef(isFocusMode);
 
-  // Apply compact layout when entering focus mode
+  // Store original positions before applying compact layout
+  const originalPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+  // Apply compact layout when entering focus mode, restore when exiting
   useEffect(() => {
-    // Only trigger when transitioning INTO focus mode (false -> true)
+    // Transitioning INTO focus mode (false -> true)
     if (isFocusMode && !prevFocusModeRef.current && nodes.length > 0) {
+      // Save original positions before applying compact layout
+      const positionsMap = new Map<string, { x: number; y: number }>();
+      nodes.forEach((node) => {
+        positionsMap.set(node.id, { x: node.position.x, y: node.position.y });
+      });
+      originalPositionsRef.current = positionsMap;
+
       // Apply compact layout with animation
       applyCompactLayout(nodes, edges, setNodes);
 
       // Fit view after layout animation completes (~300ms for node transitions)
+      setTimeout(() => {
+        canvasRef.current?.centerView();
+      }, 350);
+    }
+    // Transitioning OUT OF focus mode (true -> false)
+    else if (!isFocusMode && prevFocusModeRef.current && originalPositionsRef.current.size > 0) {
+      // Restore original positions
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => {
+          const originalPos = originalPositionsRef.current.get(node.id);
+          if (originalPos) {
+            return {
+              ...node,
+              position: originalPos,
+            };
+          }
+          return node;
+        })
+      );
+
+      // Fit view after restoration
       setTimeout(() => {
         canvasRef.current?.centerView();
       }, 350);

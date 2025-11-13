@@ -107,7 +107,8 @@ const calculateNodeLevels = (
 };
 
 /**
- * Calculate compact positions for all nodes with intelligent spacing
+ * Calculate tree-style positions for nodes with horizontal spreading
+ * Creates a pyramid/tree structure with proper centering
  */
 export const calculateCompactLayout = (
   nodes: CreateWorkflowNode[],
@@ -133,28 +134,49 @@ export const calculateCompactLayout = (
     levelGroups.get(levelInfo.level)!.push(node);
   });
 
-  // Calculate positions with size-aware spacing
   const updatedNodes: CreateWorkflowNode[] = [];
-  let currentX = SPACING.minPadding;
-
   const sortedLevels = Array.from(levelGroups.keys()).sort((a, b) => a - b);
+
+  // Calculate vertical positions and widths for each level
+  let currentY = SPACING.minPadding;
+  const levelYPositions = new Map<number, number>();
+  const levelWidths = new Map<number, number>();
 
   sortedLevels.forEach((level) => {
     const nodesInLevel = levelGroups.get(level)!;
+    
+    // Find max height in this level
+    const maxHeight = Math.max(
+      ...nodesInLevel.map((n) => getNodeDimensions(n).height)
+    );
 
-    // Calculate total height needed for this column
-    const totalHeight = nodesInLevel.reduce((sum, node) => {
-      const dims = getNodeDimensions(node);
-      return sum + dims.height;
+    // Calculate total width for this level
+    const totalWidth = nodesInLevel.reduce((sum, node) => {
+      return sum + getNodeDimensions(node).width;
     }, 0);
+    const totalGaps = (nodesInLevel.length - 1) * SPACING.horizontalGap * 1.5;
+    const levelWidth = totalWidth + totalGaps;
 
-    const totalGaps = (nodesInLevel.length - 1) * SPACING.verticalGap;
-    const columnHeight = totalHeight + totalGaps;
+    levelYPositions.set(level, currentY);
+    levelWidths.set(level, levelWidth);
+    currentY += maxHeight + SPACING.verticalGap * 2; // Increased vertical spacing
+  });
 
-    // Center the column vertically
-    let currentY = SPACING.minPadding;
+  // Find the maximum width to center all levels
+  const maxLevelWidth = Math.max(...Array.from(levelWidths.values()));
+  const canvasWidth = maxLevelWidth + SPACING.minPadding * 4;
 
-    // Position each node in this level
+  // Position nodes with centering for pyramid effect
+  sortedLevels.forEach((level) => {
+    const nodesInLevel = levelGroups.get(level)!;
+    const levelY = levelYPositions.get(level)!;
+    const levelWidth = levelWidths.get(level)!;
+
+    // Center this level horizontally
+    const startX = (canvasWidth - levelWidth) / 2;
+    let currentX = startX;
+
+    // Position each node horizontally in this level
     nodesInLevel.forEach((node) => {
       const dims = getNodeDimensions(node);
 
@@ -162,23 +184,12 @@ export const calculateCompactLayout = (
         ...node,
         position: {
           x: currentX,
-          y: currentY,
+          y: levelY,
         },
       });
 
-      currentY += dims.height + SPACING.verticalGap;
+      currentX += dims.width + SPACING.horizontalGap * 1.5;
     });
-
-    // Calculate max width in this level for next column positioning
-    const maxWidth = Math.max(
-      ...nodesInLevel.map((n) => {
-        const dims = getNodeDimensions(n);
-        return dims.width;
-      })
-    );
-
-    // Move to next column with size-aware horizontal spacing
-    currentX += maxWidth + SPACING.horizontalGap;
   });
 
   return updatedNodes;
