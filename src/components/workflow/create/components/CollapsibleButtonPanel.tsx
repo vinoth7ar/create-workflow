@@ -28,11 +28,13 @@ export const CollapsibleButtonPanel = ({
   return (
     <div
       className={`
-        fixed left-0 top-1/2 -translate-y-1/2 z-50
+        fixed top-1/2 -translate-y-1/2 z-50
         flex flex-col gap-2 bg-white border border-gray-300 rounded-r-lg shadow-lg p-2
         transition-all duration-300 ease-in-out
-        ${isCollapsed ? 'left-0' : 'left-80'}
       `}
+      style={{
+        left: isCollapsed ? '0' : '20rem',
+      }}
       data-testid='collapsible-button-panel'
     >
       {/* Button 1: Expand/Collapse Sidebar */}

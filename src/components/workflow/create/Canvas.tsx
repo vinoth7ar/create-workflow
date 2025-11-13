@@ -9,7 +9,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Connection, Edge, FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 import './CreateWorkflow.scss';
-import { useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 // MODULAR IMPORT: Focus mode utility
 import { applyFocusMode, getFocusModeClasses } from './utils/focusModeUtils';
 
@@ -74,6 +74,9 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
     const { fitView, getNode } = useReactFlow();
     const reactFlowInstance = useReactFlow();
 
+    // MODULAR FEATURE: Store previous viewport when entering focus mode
+    const previousViewportRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
+
     useImperativeHandle(ref, () => ({
       centerView: (nodeId?: string) => {
         if (nodeId) {
@@ -112,8 +115,22 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
 
     // MODULAR FEATURE: Apply focus mode when toggled
     useEffect(() => {
+      if (!reactFlowInstance) return; // Guard against null instance
+
       if (isFocusMode) {
+        // Only store viewport ONCE when first entering focus mode
+        // Prevent subsequent node/edge updates from overwriting the saved viewport
+        if (!previousViewportRef.current) {
+          const viewport = reactFlowInstance.getViewport();
+          previousViewportRef.current = viewport;
+        }
+
+        // Apply focus mode (can be reapplied on node/edge changes)
         applyFocusMode(reactFlowInstance, nodes, edges);
+      } else if (previousViewportRef.current) {
+        // Restore previous viewport when exiting focus mode
+        reactFlowInstance.setViewport(previousViewportRef.current, { duration: 300 });
+        previousViewportRef.current = null;
       }
     }, [isFocusMode, reactFlowInstance, nodes, edges]);
 
