@@ -13,9 +13,9 @@ const FALLBACK_DIMENSIONS = {
  * Spacing configuration for compact layout
  */
 const SPACING = {
-  horizontalGap: 80, // Base horizontal gap between columns
-  verticalGap: 60, // Base vertical gap between nodes in same column
-  minPadding: 50, // Minimum padding from edges
+  horizontalGap: 160, // Horizontal gap between columns
+  verticalGap: 80, // Vertical gap between child nodes
+  minPadding: 100, // Minimum padding from edges
 };
 
 interface NodeLevel {
@@ -107,8 +107,18 @@ const calculateNodeLevels = (
 };
 
 /**
- * Calculate tree-style positions for nodes with horizontal spreading
- * Creates a pyramid/tree structure with proper centering
+ * Track occupied vertical space in each column for collision detection
+ */
+interface OccupiedBand {
+  minY: number;
+  maxY: number;
+}
+
+/**
+ * Calculate horizontal growth layout with parent-relative child positioning
+ * - Grows left-to-right in columns
+ * - Single child: same Y as parent
+ * - Multiple children: distributed above/below parent
  */
 export const calculateCompactLayout = (
   nodes: CreateWorkflowNode[],
@@ -116,83 +126,193 @@ export const calculateCompactLayout = (
 ): CreateWorkflowNode[] => {
   if (nodes.length === 0) return nodes;
 
-  // Defensive check: if no START node exists, return nodes unchanged
   const startNode = nodes.find((n) => n.type === NODE_TYPES.START);
   if (!startNode) return nodes;
 
   const nodeLevels = calculateNodeLevels(nodes, edges);
+  const nodePositions = new Map<string, { x: number; y: number }>();
+  const occupiedBands = new Map<number, OccupiedBand[]>();
 
-  // Group nodes by level
-  const levelGroups = new Map<number, CreateWorkflowNode[]>();
+  // Find max width in each level for X positioning
+  const levelMaxWidths = new Map<number, number>();
   nodes.forEach((node) => {
     const levelInfo = nodeLevels.get(node.id);
     if (!levelInfo) return;
+    const dims = getNodeDimensions(node);
+    const currentMax = levelMaxWidths.get(levelInfo.level) || 0;
+    levelMaxWidths.set(levelInfo.level, Math.max(currentMax, dims.width));
+  });
 
-    if (!levelGroups.has(levelInfo.level)) {
-      levelGroups.set(levelInfo.level, []);
+  // Calculate X positions for each level (columns)
+  const levelXPositions = new Map<number, number>();
+  let currentX = SPACING.minPadding;
+  const sortedLevels = Array.from(levelMaxWidths.keys()).sort((a, b) => a - b);
+  sortedLevels.forEach((level) => {
+    levelXPositions.set(level, currentX);
+    const maxWidth = levelMaxWidths.get(level) || 150;
+    currentX += maxWidth + SPACING.horizontalGap;
+  });
+
+  // Helper: Get children of a node
+  const getChildren = (nodeId: string): CreateWorkflowNode[] => {
+    const childEdges = edges.filter((e) => e.source === nodeId);
+    return childEdges.map((e) => nodes.find((n) => n.id === e.target)).filter(Boolean) as CreateWorkflowNode[];
+  };
+
+  // Helper: Find minimum Y that avoids ALL collisions in a column (iterative)
+  const findAvailableY = (level: number, preferredY: number, height: number): number => {
+    if (!occupiedBands.has(level)) {
+      return preferredY;
     }
-    levelGroups.get(levelInfo.level)!.push(node);
-  });
 
-  const updatedNodes: CreateWorkflowNode[] = [];
-  const sortedLevels = Array.from(levelGroups.keys()).sort((a, b) => a - b);
+    const bands = occupiedBands.get(level)!;
+    let candidateY = preferredY;
 
-  // Calculate vertical positions and widths for each level
-  let currentY = SPACING.minPadding;
-  const levelYPositions = new Map<number, number>();
-  const levelWidths = new Map<number, number>();
+    // Iteratively find collision-free position
+    // Will always terminate because candidateY monotonically increases
+    while (true) {
+      const proposedMinY = candidateY;
+      const proposedMaxY = candidateY + height;
 
-  sortedLevels.forEach((level) => {
-    const nodesInLevel = levelGroups.get(level)!;
-    
-    // Find max height in this level
-    const maxHeight = Math.max(
-      ...nodesInLevel.map((n) => getNodeDimensions(n).height)
-    );
+      // Check for collisions with ANY existing band
+      let hasCollision = false;
+      let maxConflictY = 0;
 
-    // Calculate total width for this level
-    const totalWidth = nodesInLevel.reduce((sum, node) => {
-      return sum + getNodeDimensions(node).width;
-    }, 0);
-    const totalGaps = (nodesInLevel.length - 1) * SPACING.horizontalGap * 1.5;
-    const levelWidth = totalWidth + totalGaps;
+      for (const band of bands) {
+        // Check overlap: A overlaps B if (A.min <= B.max AND A.max >= B.min)
+        if (proposedMinY <= band.maxY && proposedMaxY >= band.minY) {
+          hasCollision = true;
+          maxConflictY = Math.max(maxConflictY, band.maxY);
+        }
+      }
 
-    levelYPositions.set(level, currentY);
-    levelWidths.set(level, levelWidth);
-    currentY += maxHeight + SPACING.verticalGap * 2; // Increased vertical spacing
-  });
+      // If no collision, we found a valid position
+      if (!hasCollision) {
+        return candidateY;
+      }
 
-  // Find the maximum width to center all levels
-  const maxLevelWidth = Math.max(...Array.from(levelWidths.values()));
-  const canvasWidth = maxLevelWidth + SPACING.minPadding * 4;
+      // Collision detected: shift down and re-check
+      candidateY = maxConflictY + SPACING.verticalGap;
+    }
+  };
 
-  // Position nodes with centering for pyramid effect
-  sortedLevels.forEach((level) => {
-    const nodesInLevel = levelGroups.get(level)!;
-    const levelY = levelYPositions.get(level)!;
-    const levelWidth = levelWidths.get(level)!;
+  // Helper: Add occupied band after positioning
+  const trackOccupiedBand = (level: number, minY: number, maxY: number): void => {
+    if (!occupiedBands.has(level)) {
+      occupiedBands.set(level, []);
+    }
+    occupiedBands.get(level)!.push({ minY, maxY });
+  };
 
-    // Center this level horizontally
-    const startX = (canvasWidth - levelWidth) / 2;
-    let currentX = startX;
+  // BFS traversal to position nodes
+  const queue: string[] = [startNode.id];
+  const visited = new Set<string>();
 
-    // Position each node horizontally in this level
-    nodesInLevel.forEach((node) => {
-      const dims = getNodeDimensions(node);
+  // Position START node
+  const startDims = getNodeDimensions(startNode);
+  const startY = SPACING.minPadding * 2;
+  nodePositions.set(startNode.id, { x: SPACING.minPadding, y: startY });
+  trackOccupiedBand(0, startY, startY + startDims.height);
+  visited.add(startNode.id);
 
-      updatedNodes.push({
-        ...node,
-        position: {
-          x: currentX,
-          y: levelY,
-        },
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const currentNode = nodes.find((n) => n.id === currentId);
+    if (!currentNode) continue;
+
+    const currentPos = nodePositions.get(currentId)!;
+    const currentDims = getNodeDimensions(currentNode);
+    const currentLevel = nodeLevels.get(currentId)?.level || 0;
+    const children = getChildren(currentId);
+
+    if (children.length === 0) continue;
+
+    const childLevel = currentLevel + 1;
+    const childX = levelXPositions.get(childLevel) || 0;
+
+    // Filter out children that have already been positioned (multi-parent scenario)
+    const unpositionedChildren = children.filter((c) => !visited.has(c.id));
+
+    if (unpositionedChildren.length === 0) {
+      // All children already positioned by other parents, add them to queue
+      children.forEach((child) => {
+        if (!visited.has(child.id)) {
+          queue.push(child.id);
+          visited.add(child.id);
+        }
       });
+      continue;
+    }
 
-      currentX += dims.width + SPACING.horizontalGap * 1.5;
-    });
+    if (unpositionedChildren.length === 1) {
+      // Single child: prefer parent Y axis but avoid collisions
+      const child = unpositionedChildren[0];
+      const childDims = getNodeDimensions(child);
+      const preferredY = currentPos.y;
+
+      // Find available Y (shifts minimally if collision)
+      const childY = findAvailableY(childLevel, preferredY, childDims.height);
+      nodePositions.set(child.id, { x: childX, y: childY });
+      trackOccupiedBand(childLevel, childY, childY + childDims.height);
+
+      if (!visited.has(child.id)) {
+        queue.push(child.id);
+        visited.add(child.id);
+      }
+    } else {
+      // Multiple children: distribute above and below parent
+      const childDims = unpositionedChildren.map((c) => getNodeDimensions(c));
+      const totalHeight = childDims.reduce((sum, d) => sum + d.height, 0);
+      const totalGaps = (unpositionedChildren.length - 1) * SPACING.verticalGap;
+      const clusterHeight = totalHeight + totalGaps;
+
+      // Center cluster around parent Y
+      const parentCenterY = currentPos.y + currentDims.height / 2;
+      const preferredClusterY = parentCenterY - clusterHeight / 2;
+
+      // Find available Y for entire cluster (shifts to avoid collisions)
+      let childY = findAvailableY(childLevel, preferredClusterY, clusterHeight);
+
+      // Position each child and track their bands
+      unpositionedChildren.forEach((child, index) => {
+        const dims = childDims[index];
+        nodePositions.set(child.id, { x: childX, y: childY });
+        trackOccupiedBand(childLevel, childY, childY + dims.height);
+        childY += dims.height + SPACING.verticalGap;
+
+        if (!visited.has(child.id)) {
+          queue.push(child.id);
+          visited.add(child.id);
+        }
+      });
+    }
+  }
+
+  // Handle orphaned nodes
+  const orphanedNodes = nodes.filter((n) => !visited.has(n.id));
+  orphanedNodes.forEach((node) => {
+    const levelInfo = nodeLevels.get(node.id);
+    if (!levelInfo) return;
+
+    const x = levelXPositions.get(levelInfo.level) || SPACING.minPadding;
+    const dims = getNodeDimensions(node);
+    const preferredY = SPACING.minPadding;
+
+    const y = findAvailableY(levelInfo.level, preferredY, dims.height);
+    nodePositions.set(node.id, { x, y });
+    trackOccupiedBand(levelInfo.level, y, y + dims.height);
   });
 
-  return updatedNodes;
+  // Create updated nodes with new positions
+  return nodes.map((node) => {
+    const pos = nodePositions.get(node.id);
+    if (!pos) return node;
+
+    return {
+      ...node,
+      position: pos,
+    };
+  });
 };
 
 /**
