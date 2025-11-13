@@ -13,12 +13,12 @@ This project is a React + TypeScript workflow management application designed to
 The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as the build tool. UI components are drawn from Material-UI, Radix UI, and shadcn-ui, with Lucide React for icons. Routing is handled by React Router DOM 6.30.1, and workflow visualization is powered by React Flow (`@xyflow/react`). Styling combines Tailwind CSS with SCSS (`sass-embedded`).
 
 **UI/UX Decisions:**
-- **Node Editor Sidebar:** Collapsible with width transitions (w-80 expanded, w-12 collapsed) and animated icon rotation.
+- **Node Editor Sidebar Controls:** Three control buttons on the sidebar header:
+  1. **Collapse Button:** ChevronLeft (expanded) / ChevronRight (collapsed) icon toggles sidebar visibility with smooth 300ms transition. Sidebar width: 21rem expanded, 3rem collapsed.
+  2. **Drag Handle:** Middle button allows users to drag and reposition the entire sidebar anywhere on the screen. Uses fixed positioning and getBoundingClientRect() for smooth dragging without position jumps.
+  3. **Delete Button:** TrashIcon removes the selected node.
+- **Focus Mode Button:** Fixed-position button (bottom-right corner) with Maximize2/Minimize2 icons. Toggles hiding all sidebars (left builder sidebar and right node editor) to focus only on the graph canvas.
 - **Canvas Maximization:** `fitView` functionality to optimize graph visibility with smooth animation and padding.
-- **Collapsible Button Panel (Modular Feature):** Fixed-position panel on the left edge with three control buttons:
-  1. **Expand/Collapse Button:** Toggles sidebar visibility with smooth 300ms transitions. ChevronLeft/Right icon.
-  2. **Drag Toggle Button:** Enables/disables drag and drop for both palette and canvas nodes. Move icon with green (enabled) or gray (disabled) states.
-  3. **Focus Mode Button:** Centers and prominently displays graph with aggressive zoom, semi-transparent overlay, and viewport restoration on exit. Maximize2 icon.
 - **Validation Error Banner:** Fixed top banner with node-grouped error navigation showing one error per node, progress indicator (Error 1 of 5), Previous/Next buttons, dot navigation for jumping to specific errors, info icon popup displaying all issues for current node, auto-focus on first error, and mild red/yellow styling (red-50/yellow-50 backgrounds). Auto-dismisses when user makes any edits (node data, adding nodes, workflow metadata).
 - **Error Highlighting on Canvas:** Visual feedback for validation errors using shape-matching borders (4px solid red). Rectangular border for `EVENT` nodes, circular border for `STATUS` nodes to match their intrinsic shapes. Borders automatically clear when error state ends.
 - **Node Positioning:** Smart vertical positioning that alternates new nodes above and below the source, collision detection to prevent overlaps, and optimized horizontal/vertical spacing.
@@ -45,10 +45,9 @@ The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as
 - **Improved Node Positioning:** Prevents collisions and uses alternating vertical patterns for new nodes.
 - **Drag and Drop Functionality:** Nodes are draggable when drag toggle is enabled via the collapsible button panel.
 - **Tag Display for Selected Items:** Visual feedback for selected business events, created entities, and modified entities in the editor.
-- **Modular Sidebar Controls (Copy-Paste Ready):**
-  - `hooks/useSidebarCollapse.ts`: State management for collapse, drag, and focus modes
-  - `components/CollapsibleButtonPanel.tsx`: Fixed button panel with 3 control buttons
-  - `utils/focusModeUtils.ts`: Focus mode viewport calculation and CSS utilities
+- **Modular Node Editor Controls (Copy-Paste Ready):**
+  - `hooks/useNodeEditorControls.ts`: State management for sidebar collapse, drag positioning, and focus mode (59 lines)
+  - `components/FocusButton.tsx`: Standalone focus toggle button with Maximize2/Minimize2 icons (25 lines)
 
 **System Design Choices:**
 - **Frontend Structure:** Modular design with dedicated folders for pages, models, assets, workflow components (`create/`, `nodes/`, `components/`, `hooks/`, `utils/`), and utilities.
