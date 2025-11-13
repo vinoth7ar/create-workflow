@@ -15,6 +15,7 @@ import {
 } from '@/models/singleView/nodeTypes';
 import { useNodeEditorControls } from './hooks/useNodeEditorControls';
 import { FocusButton } from './components/FocusButton';
+import { applyCompactLayout } from './utils/compactLayout';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -75,6 +76,25 @@ export const CreateWorkflow = () => {
 
   // Connection state for dynamic handle styling
   const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
+
+  // Track previous focus mode to detect transitions
+  const prevFocusModeRef = useRef(isFocusMode);
+
+  // Apply compact layout when entering focus mode
+  useEffect(() => {
+    // Only trigger when transitioning INTO focus mode (false -> true)
+    if (isFocusMode && !prevFocusModeRef.current && nodes.length > 0) {
+      // Apply compact layout with animation
+      applyCompactLayout(nodes, edges, setNodes);
+
+      // Fit view after layout animation completes (~300ms for node transitions)
+      setTimeout(() => {
+        canvasRef.current?.centerView();
+      }, 350);
+    }
+
+    prevFocusModeRef.current = isFocusMode;
+  }, [isFocusMode, nodes, edges, setNodes]);
 
   // Get current node data with defaults - derive from nodes array to stay in sync
   const currentNode = selectedNode
