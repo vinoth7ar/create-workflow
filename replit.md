@@ -15,10 +15,14 @@ The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as
 **UI/UX Decisions:**
 - **Node Editor Sidebar:** Collapsible with width transitions (w-80 expanded, w-12 collapsed) and animated icon rotation.
 - **Canvas Maximization:** `fitView` functionality to optimize graph visibility with smooth animation and padding.
+- **Collapsible Button Panel (Modular Feature):** Fixed-position panel on the left edge with three control buttons:
+  1. **Expand/Collapse Button:** Toggles sidebar visibility with smooth 300ms transitions. ChevronLeft/Right icon.
+  2. **Drag Toggle Button:** Enables/disables drag and drop for both palette and canvas nodes. Move icon with green (enabled) or gray (disabled) states.
+  3. **Focus Mode Button:** Centers and prominently displays graph with aggressive zoom, semi-transparent overlay, and viewport restoration on exit. Maximize2 icon.
 - **Validation Error Banner:** Fixed top banner with node-grouped error navigation showing one error per node, progress indicator (Error 1 of 5), Previous/Next buttons, dot navigation for jumping to specific errors, info icon popup displaying all issues for current node, auto-focus on first error, and mild red/yellow styling (red-50/yellow-50 backgrounds). Auto-dismisses when user makes any edits (node data, adding nodes, workflow metadata).
 - **Error Highlighting on Canvas:** Visual feedback for validation errors using shape-matching borders (4px solid red). Rectangular border for `EVENT` nodes, circular border for `STATUS` nodes to match their intrinsic shapes. Borders automatically clear when error state ends.
 - **Node Positioning:** Smart vertical positioning that alternates new nodes above and below the source, collision detection to prevent overlaps, and optimized horizontal/vertical spacing.
-- **Drag & Drop:** Nodes are always draggable, with smart positioning logic for nodes dropped from the palette, including vertical variation and collision detection.
+- **Drag & Drop:** Nodes are draggable when drag toggle is enabled, with smart positioning logic for nodes dropped from the palette, including vertical variation and collision detection.
 - **Auto-Display Edit Forms:** New nodes automatically open the `NodeEditorSidebar` and are selected.
 - **Connection Visualization:** Valid connection targets highlight in green, while invalid targets are grayed out.
 - **Ghost Edge:** `StartNode` displays a dashed "ghost edge" when no nodes are connected.
@@ -39,14 +43,20 @@ The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as
 - **Collapsible Node Editor Sidebar:** Allows users to collapse/expand the editing panel for more canvas space.
 - **Maximize Canvas Button:** Provides a quick way to fit all nodes into the view.
 - **Improved Node Positioning:** Prevents collisions and uses alternating vertical patterns for new nodes.
-- **Drag and Drop Functionality:** All nodes are draggable regardless of auto-positioning settings.
+- **Drag and Drop Functionality:** Nodes are draggable when drag toggle is enabled via the collapsible button panel.
 - **Tag Display for Selected Items:** Visual feedback for selected business events, created entities, and modified entities in the editor.
+- **Modular Sidebar Controls (Copy-Paste Ready):**
+  - `hooks/useSidebarCollapse.ts`: State management for collapse, drag, and focus modes
+  - `components/CollapsibleButtonPanel.tsx`: Fixed button panel with 3 control buttons
+  - `utils/focusModeUtils.ts`: Focus mode viewport calculation and CSS utilities
 
 **System Design Choices:**
-- **Frontend Structure:** Modular design with dedicated folders for pages, models, assets, workflow components (`create/`, `nodes/`), utilities, and hooks.
+- **Frontend Structure:** Modular design with dedicated folders for pages, models, assets, workflow components (`create/`, `nodes/`, `components/`, `hooks/`, `utils/`), and utilities.
 - **Key Files:** `CreateWorkflow.tsx` acts as the main orchestrating component, `nodeTypes.ts` defines core types, and `App.tsx` handles routing.
+- **Modular Components:** New features implemented as standalone, copy-paste ready modules in dedicated folders to facilitate cross-repo code sharing.
 - **Import Path Resolution:** Uses `@/` alias for consistent imports.
 - **Development Workflow:** Standard `npm run dev` for development, `npm run build` for production, and `npm run preview` for production preview.
+- **Code Quality:** Enforced via ESLint and Prettier with single quotes, 2-space indentation, and 100-character line width. Zero TypeScript errors and zero ESLint warnings policy.
 - **Deployment Target:** Autoscale for stateless frontend applications.
 
 ## External Dependencies
