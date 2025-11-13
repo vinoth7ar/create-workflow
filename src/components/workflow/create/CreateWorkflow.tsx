@@ -783,80 +783,82 @@ export const CreateWorkflow = () => {
   );
 
   return (
-    <div className='h-full overflow-y-auto flex bg-gray-100'>
-      {!isFocusMode && (
-        <Sidebar
-          workflowName={workflowName}
-          workflowDescription={workflowDescription}
-          autoPositioning={autoPositioning}
-          lastNodeType={
-            nodes.length > 0
-              ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
-                  prev.position.x > current.position.x ? prev : current
-                ).type
-              : null
-          }
-          onWorkflowNameChange={setWorkflowName}
-          onWorkflowDescriptionChange={setWorkflowDescription}
-          onAutoPositioningChange={setAutoPositioning}
-          onDragStart={onDragStart}
-          onSaveDraft={handleSaveDraft}
-          onPublishDraft={handlePublishDraft}
-        />
-      )}
-      <Canvas
-        ref={canvasRef}
-        nodes={nodesWithConnectionState}
-        edges={edges}
-        highlightedElements={highlightedElements}
-        nodeTypes={nodeTypes}
-        autoPositioning={autoPositioning}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectStart={onConnectStart}
-        onConnectEnd={onConnectEnd}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onPaneClick={handleCanvasClick}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-      />
-      {!isFocusMode && (
-        <NodeEditorSidebar
-          selectedNode={selectedNode}
+    <>
+      <div className='h-screen flex min-h-0 overflow-hidden bg-gray-100'>
+        {!isFocusMode && (
+          <Sidebar
+            workflowName={workflowName}
+            workflowDescription={workflowDescription}
+            autoPositioning={autoPositioning}
+            lastNodeType={
+              nodes.length > 0
+                ? nodes.reduce((prev: CreateWorkflowNode, current: CreateWorkflowNode) =>
+                    prev.position.x > current.position.x ? prev : current
+                  ).type
+                : null
+            }
+            onWorkflowNameChange={setWorkflowName}
+            onWorkflowDescriptionChange={setWorkflowDescription}
+            onAutoPositioningChange={setAutoPositioning}
+            onDragStart={onDragStart}
+            onSaveDraft={handleSaveDraft}
+            onPublishDraft={handlePublishDraft}
+          />
+        )}
+        <Canvas
+          ref={canvasRef}
+          nodes={nodesWithConnectionState}
           edges={edges}
-          businessEvent={currentNodeData.businessEvent}
-          businessEventName={currentNodeData.businessEventName}
-          condition={currentNodeData.condition}
-          description={currentNodeData.description}
-          automaticTrigger={currentNodeData.automaticTrigger}
-          externalTrigger={currentNodeData.externalTrigger}
-          focalEntity={currentNodeData.focalEntity}
-          createdEntities={currentNodeData.createdEntities}
-          modifiedEntities={currentNodeData.modifiedEntities}
-          onBusinessEventChange={handleBusinessEventChange}
-          onBusinessEventNameChange={handleBusinessEventNameChange}
-          onConditionChange={handleConditionChange}
-          onDescriptionChange={handleDescriptionChange}
-          onAutomaticTriggerChange={handleAutomaticTriggerChange}
-          onExternalTriggerChange={handleExternalTriggerChange}
-          onFocalEntityChange={handleFocalEntityChange}
-          onCreatedEntitiesChange={handleCreatedEntitiesChange}
-          onModifiedEntitiesChange={handleModifiedEntitiesChange}
-          onCreateNew={handleCreateNew}
-          onDone={() => setSelectedNode(null)}
-          onDelete={handleNodeDelete}
-          isCollapsed={isCollapsed}
-          isDragging={isDragging}
-          position={position}
-          onToggleCollapse={toggleCollapse}
-          onDragStart={handleDragStart}
+          highlightedElements={highlightedElements}
+          nodeTypes={nodeTypes}
+          autoPositioning={autoPositioning}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onPaneClick={handleCanvasClick}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
         />
-      )}
+        {!isFocusMode && (
+          <NodeEditorSidebar
+            selectedNode={selectedNode}
+            edges={edges}
+            businessEvent={currentNodeData.businessEvent}
+            businessEventName={currentNodeData.businessEventName}
+            condition={currentNodeData.condition}
+            description={currentNodeData.description}
+            automaticTrigger={currentNodeData.automaticTrigger}
+            externalTrigger={currentNodeData.externalTrigger}
+            focalEntity={currentNodeData.focalEntity}
+            createdEntities={currentNodeData.createdEntities}
+            modifiedEntities={currentNodeData.modifiedEntities}
+            onBusinessEventChange={handleBusinessEventChange}
+            onBusinessEventNameChange={handleBusinessEventNameChange}
+            onConditionChange={handleConditionChange}
+            onDescriptionChange={handleDescriptionChange}
+            onAutomaticTriggerChange={handleAutomaticTriggerChange}
+            onExternalTriggerChange={handleExternalTriggerChange}
+            onFocalEntityChange={handleFocalEntityChange}
+            onCreatedEntitiesChange={handleCreatedEntitiesChange}
+            onModifiedEntitiesChange={handleModifiedEntitiesChange}
+            onCreateNew={handleCreateNew}
+            onDone={() => setSelectedNode(null)}
+            onDelete={handleNodeDelete}
+            isCollapsed={isCollapsed}
+            isDragging={isDragging}
+            position={position}
+            onToggleCollapse={toggleCollapse}
+            onDragStart={handleDragStart}
+          />
+        )}
+      </div>
 
       <FocusButton isFocusMode={isFocusMode} onToggleFocus={toggleFocusMode} />
-    </div>
+    </>
   );
 };
 

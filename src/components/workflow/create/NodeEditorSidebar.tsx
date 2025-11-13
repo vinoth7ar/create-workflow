@@ -223,8 +223,8 @@ export const NodeEditorSidebar = ({
 
   return (
     <div
-      className={`bg-gray-800 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${
-        isCollapsed ? 'w-12 h-16' : 'w-[21rem]'
+      className={`bg-gray-800 text-white shadow-2xl transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'flex flex-row items-center gap-2 h-12 w-auto px-3' : 'flex flex-col w-[21rem]'
       } ${isDragging ? 'cursor-grabbing' : ''}`}
       style={
         position.x !== 0 || position.y !== 0
@@ -233,20 +233,20 @@ export const NodeEditorSidebar = ({
               right: 'auto',
               left: `${position.x}px`,
               top: `${position.y}px`,
-              height: isCollapsed ? '4rem' : '100%',
+              height: isCollapsed ? '3rem' : '100%',
               zIndex: 40,
             }
           : isCollapsed
             ? {
                 position: 'fixed',
-                bottom: '5rem',
+                top: '1rem',
                 right: '1rem',
                 zIndex: 40,
               }
             : { height: '100%' }
       }
     >
-      <div className='p-4 border-b border-gray-600 flex items-center justify-between'>
+      <div className={`${isCollapsed ? 'flex items-center gap-2' : 'p-4 border-b border-gray-600 flex items-center justify-between'}`}>
         <button
           onClick={onToggleCollapse}
           className='text-gray-400 hover:text-white transition-colors'
@@ -256,26 +256,22 @@ export const NodeEditorSidebar = ({
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
 
-        {!isCollapsed && (
-          <>
-            <button
-              onMouseDown={onDragStart}
-              className='text-gray-400 hover:text-white transition-colors cursor-grab active:cursor-grabbing'
-              title='Drag to reposition sidebar'
-              data-testid='button-drag-handle'
-            >
-              <DragReorder />
-            </button>
+        <button
+          onMouseDown={onDragStart}
+          className='text-gray-400 hover:text-white transition-colors cursor-grab active:cursor-grabbing'
+          title='Drag to reposition sidebar'
+          data-testid='button-drag-handle'
+        >
+          <DragReorder />
+        </button>
 
-            <button
-              className='text-gray-400 hover:text-red-500 transition-color'
-              onClick={onDelete}
-              data-testid='button-delete-node'
-            >
-              <TrashIcon />
-            </button>
-          </>
-        )}
+        <button
+          className='text-gray-400 hover:text-red-500 transition-color'
+          onClick={onDelete}
+          data-testid='button-delete-node'
+        >
+          <TrashIcon />
+        </button>
       </div>
 
       {!isCollapsed && (
