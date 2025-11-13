@@ -22,8 +22,9 @@ export const calculateFocusViewport = (nodes: Node[], edges: Edge[]) => {
   let maxY = -Infinity;
 
   nodes.forEach((node) => {
-    const nodeWidth = 200; // Approximate node width
-    const nodeHeight = 100; // Approximate node height
+    // Use measured dimensions if available, otherwise fallback to approximate
+    const nodeWidth = node.measured?.width || node.width || 200;
+    const nodeHeight = node.measured?.height || node.height || 100;
 
     minX = Math.min(minX, node.position.x);
     minY = Math.min(minY, node.position.y);
@@ -39,11 +40,20 @@ export const calculateFocusViewport = (nodes: Node[], edges: Edge[]) => {
   const width = maxX - minX;
   const height = maxY - minY;
 
+  // Guard against zero-width/height bounds (single node or overlapping nodes)
+  if (width === 0 || height === 0) {
+    return {
+      x: (window.innerWidth || 800) / 2 - centerX,
+      y: (window.innerHeight || 600) / 2 - centerY,
+      zoom: 1,
+    };
+  }
+
   // Calculate zoom level to fit content with more aggressive zoom (less padding)
   // This makes the graph more prominent than standard fitView
   const padding = 50; // Less padding for more prominent view
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth || 800; // Fallback for SSR/tests
+  const viewportHeight = window.innerHeight || 600; // Fallback for SSR/tests
 
   const zoomX = (viewportWidth - padding * 2) / width;
   const zoomY = (viewportHeight - padding * 2) / height;

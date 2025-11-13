@@ -13,6 +13,9 @@ import {
   FlowNode,
   NODE_TYPES,
 } from '@/models/singleView/nodeTypes';
+// MODULAR IMPORTS: New collapsible sidebar functionality
+import { useSidebarCollapse } from './hooks/useSidebarCollapse';
+import { CollapsibleButtonPanel } from './components/CollapsibleButtonPanel';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -26,6 +29,16 @@ export const CreateWorkflow = () => {
     nodeIds?: string[];
     edgeIds: string[];
   }>({ edgeIds: [] });
+
+  // MODULAR FEATURE: Sidebar collapse state management
+  const {
+    isCollapsed,
+    isDragEnabled,
+    isFocusMode,
+    toggleCollapse,
+    toggleDragEnabled,
+    toggleFocusMode,
+  } = useSidebarCollapse();
 
   // initiate a default, none removable start node
   const startNodeRef = useRef<CreateWorkflowNode>({
@@ -757,6 +770,16 @@ export const CreateWorkflow = () => {
 
   return (
     <div className='h-full overflow-y-auto flex bg-gray-100'>
+      {/* MODULAR FEATURE: Collapsible Button Panel */}
+      <CollapsibleButtonPanel
+        isCollapsed={isCollapsed}
+        isDragEnabled={isDragEnabled}
+        isFocusMode={isFocusMode}
+        onToggleCollapse={toggleCollapse}
+        onToggleDrag={toggleDragEnabled}
+        onToggleFocus={toggleFocusMode}
+      />
+
       <Sidebar
         workflowName={workflowName}
         workflowDescription={workflowDescription}
@@ -774,6 +797,8 @@ export const CreateWorkflow = () => {
         onDragStart={onDragStart}
         onSaveDraft={handleSaveDraft}
         onPublishDraft={handlePublishDraft}
+        isCollapsed={isCollapsed}
+        isDragEnabled={isDragEnabled}
       />
       <Canvas
         ref={canvasRef}
@@ -792,6 +817,8 @@ export const CreateWorkflow = () => {
         onPaneClick={handleCanvasClick}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        isFocusMode={isFocusMode}
+        isDragEnabled={isDragEnabled}
       />
       <NodeEditorSidebar
         selectedNode={selectedNode}

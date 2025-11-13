@@ -10,6 +10,8 @@ import '@xyflow/react/dist/style.css';
 import { Connection, Edge, FlowNode, NODE_TYPES } from '@/models/singleView/nodeTypes';
 import './CreateWorkflow.scss';
 import { useEffect, useImperativeHandle, forwardRef } from 'react';
+// MODULAR IMPORT: Focus mode utility
+import { applyFocusMode, getFocusModeClasses } from './utils/focusModeUtils';
 
 interface CanvasProps {
   nodes: FlowNode[];
@@ -33,6 +35,9 @@ interface CanvasProps {
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onNodeAdded?: () => void;
+  // MODULAR PROPS: New focus mode and drag toggle
+  isFocusMode?: boolean;
+  isDragEnabled?: boolean;
 }
 
 export interface CanvasRef {
@@ -60,10 +65,14 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
       onDrop,
       onDragOver,
       onNodeAdded,
+      // MODULAR PROPS: New focus mode and drag toggle
+      isFocusMode = false,
+      isDragEnabled = true,
     },
     ref
   ) => {
     const { fitView, getNode } = useReactFlow();
+    const reactFlowInstance = useReactFlow();
 
     useImperativeHandle(ref, () => ({
       centerView: (nodeId?: string) => {
@@ -100,6 +109,16 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
         onNodeAdded();
       }
     }, [nodes.length, onNodeAdded]);
+
+    // MODULAR FEATURE: Apply focus mode when toggled
+    useEffect(() => {
+      if (isFocusMode) {
+        applyFocusMode(reactFlowInstance, nodes, edges);
+      }
+    }, [isFocusMode, reactFlowInstance, nodes, edges]);
+
+    // MODULAR FEATURE: Get CSS classes for focus mode
+    const focusClasses = getFocusModeClasses(isFocusMode);
     const isValidConnection = (connection: Connection): boolean => {
       const sourceNode = nodes.find((n) => n.id === connection.source);
       const targetNode = nodes.find((n) => n.id === connection.target);
@@ -131,77 +150,82 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
     };
 
     return (
-      <ReactFlow
-        nodes={nodes.map((node: any) => {
-          const isHighlighted =
-            highlightedElements.nodeId === node.id ||
-            highlightedElements.nodeIds?.includes(node.id);
-          const hasError = errorNodeIds.has(node.id);
+      <>
+        {/* MODULAR FEATURE: Focus mode overlay */}
+        {isFocusMode && <div className={focusClasses.overlay} />}
 
-          const styleOverrides: any = {
-            transition: 'all 0.3s ease',
-          };
+        <ReactFlow
+          nodes={nodes.map((node: any) => {
+            const isHighlighted =
+              highlightedElements.nodeId === node.id ||
+              highlightedElements.nodeIds?.includes(node.id);
+            const hasError = errorNodeIds.has(node.id);
 
-          if (hasError) {
-            // EVENT nodes: rectangular border, STATUS nodes: circular border
-            styleOverrides.boxShadow = 'none';
-            styleOverrides.border = '4px solid #ef4444';
-          } else if (isHighlighted) {
-            styleOverrides.boxShadow =
-              node.type === NODE_TYPES.STATUS
-                ? 'none'
-                : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)';
-          }
+            const styleOverrides: any = {
+              transition: 'all 0.3s ease',
+            };
 
-          return {
-            ...node,
-            style: {
-              ...node.style,
-              ...styleOverrides,
-            },
-          };
-        })}
-        edges={edges.map((edge) => ({
-          ...edge,
-          style: highlightedElements.edgeIds.includes(edge.id)
-            ? {
-                ...edge.style,
-                strokeWidth: 3,
-                stroke: '#3b82f6',
-                opacity: 1,
-                transition: 'all 0.3s ease',
-              }
-            : { ...edge.style, transition: 'all 0.3s ease' },
-          animated: highlightedElements.edgeIds.includes(edge.id),
-        }))}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectStart={onConnectStart}
-        onConnectEnd={onConnectEnd}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onPaneClick={onPaneClick}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        nodeTypes={nodeTypes}
-        nodesDraggable={true}
-        isValidConnection={isValidConnection}
-        connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2 }}
-        fitView
-        snapToGrid
-        snapGrid={[15, 15]}
-        className='bg-white'
-      >
-        <Background variant={BackgroundVariant.Dots} color='#8ABFC7' gap={15} size={1} />
-        <Controls
-          position='bottom-left'
-          className='bg-white border border-gray-300 rounded shadow-sm'
-          showZoom={true}
-          showFitView={true}
-          showInteractive={false}
-        />
-      </ReactFlow>
+            if (hasError) {
+              // EVENT nodes: rectangular border, STATUS nodes: circular border
+              styleOverrides.boxShadow = 'none';
+              styleOverrides.border = '4px solid #ef4444';
+            } else if (isHighlighted) {
+              styleOverrides.boxShadow =
+                node.type === NODE_TYPES.STATUS
+                  ? 'none'
+                  : '0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4)';
+            }
+
+            return {
+              ...node,
+              style: {
+                ...node.style,
+                ...styleOverrides,
+              },
+            };
+          })}
+          edges={edges.map((edge) => ({
+            ...edge,
+            style: highlightedElements.edgeIds.includes(edge.id)
+              ? {
+                  ...edge.style,
+                  strokeWidth: 3,
+                  stroke: '#3b82f6',
+                  opacity: 1,
+                  transition: 'all 0.3s ease',
+                }
+              : { ...edge.style, transition: 'all 0.3s ease' },
+            animated: highlightedElements.edgeIds.includes(edge.id),
+          }))}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onPaneClick={onPaneClick}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          nodeTypes={nodeTypes}
+          nodesDraggable={isDragEnabled}
+          isValidConnection={isValidConnection}
+          connectionLineStyle={{ stroke: '#10b981', strokeWidth: 2 }}
+          fitView
+          snapToGrid
+          snapGrid={[15, 15]}
+          className={`bg-white ${focusClasses.canvas}`}
+        >
+          <Background variant={BackgroundVariant.Dots} color='#8ABFC7' gap={15} size={1} />
+          <Controls
+            position='bottom-left'
+            className='bg-white border border-gray-300 rounded shadow-sm'
+            showZoom={true}
+            showFitView={true}
+            showInteractive={false}
+          />
+        </ReactFlow>
+      </>
     );
   }
 );
