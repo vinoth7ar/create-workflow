@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ValidationError, ValidationResult } from '@/utils/workflowValidation';
 
 /**
@@ -16,6 +16,11 @@ export interface NodeValidationGroup {
  */
 export const useValidationFeedback = (validationResult: ValidationResult | null) => {
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
+
+  // Reset index when validation result changes
+  useEffect(() => {
+    setCurrentErrorIndex(0);
+  }, [validationResult]);
 
   // Group errors and warnings by node
   const nodeGroups = useMemo(() => {

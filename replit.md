@@ -39,16 +39,20 @@ The frontend is built with React 18.3.1 and TypeScript, utilizing Vite 5.4.19 as
 - **Smart View Fitting:** Canvas automatically centers and zooms on new nodes with smooth animation.
 
 **Feature Specifications:**
-- **Workflow Validation:** Includes checks for empty workflow name, incomplete node details, unconnected nodes, dead-end nodes, unreachable nodes, and circular references.
+- **Workflow Validation:** Includes checks for empty workflow name, incomplete node details, unconnected nodes, dead-end nodes, unreachable nodes, and circular references. Frontend-only validation with no backend integration.
 - **Node Type Renaming:** `STATE` node type renamed to `STATUS` across the codebase.
 - **Collapsible Node Editor Sidebar:** Allows users to collapse/expand the editing panel for more canvas space.
 - **Maximize Canvas Button:** Provides a quick way to fit all nodes into the view.
 - **Improved Node Positioning:** Prevents collisions and uses alternating vertical patterns for new nodes.
 - **Drag and Drop Functionality:** Nodes are draggable when drag toggle is enabled via the collapsible button panel.
 - **Tag Display for Selected Items:** Visual feedback for selected business events, created entities, and modified entities in the editor.
-- **Modular Node Editor Controls (Copy-Paste Ready):**
+- **Modular Components (Copy-Paste Ready):**
   - `hooks/useNodeEditorControls.ts`: State management for sidebar collapse, drag positioning, and focus mode (59 lines)
+  - `hooks/useValidationFeedback.ts`: Validation state management with node-indexed error map and navigation (94 lines)
   - `components/FocusButton.tsx`: Standalone focus toggle button with Maximize2/Minimize2 icons (25 lines)
+  - `components/ValidationErrorBanner.tsx`: Error banner with Previous/Next navigation and details popup (215 lines)
+  - `utils/workflowValidation.ts`: Comprehensive validation logic with 16 validation scenarios (503 lines)
+  - `utils/compactLayout.ts`: Horizontal growth layout algorithm with parent-anchored positioning (302 lines)
 
 **System Design Choices:**
 - **Frontend Structure:** Modular design with dedicated folders for pages, models, assets, workflow components (`create/`, `nodes/`, `components/`, `hooks/`, `utils/`), and utilities.

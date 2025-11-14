@@ -16,6 +16,9 @@ import {
 import { useNodeEditorControls } from './hooks/useNodeEditorControls';
 import { FocusButton } from './components/FocusButton';
 import { applyCompactLayout } from './utils/compactLayout';
+import { validateWorkflow, ValidationMode, ValidationResult } from '@/utils/workflowValidation';
+import { useValidationFeedback } from './hooks/useValidationFeedback';
+import { ValidationErrorBanner } from './components/ValidationErrorBanner';
 
 const START_POSITION = { x: 150, y: 200 };
 
@@ -29,6 +32,11 @@ export const CreateWorkflow = () => {
     nodeIds?: string[];
     edgeIds: string[];
   }>({ edgeIds: [] });
+
+  // Validation state
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const validation = useValidationFeedback(validationResult);
+  const [lastEditTimestamp, setLastEditTimestamp] = useState<number>(0);
 
   // MODULAR HOOK: Node editor sidebar controls
   const {
@@ -70,8 +78,8 @@ export const CreateWorkflow = () => {
   const canvasRef = useRef<CanvasRef>(null);
 
   // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState([startNodeRef.current]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, reactFlowOnNodesChange] = useNodesState([startNodeRef.current]);
+  const [edges, setEdges, reactFlowOnEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null);
 
   // Connection state for dynamic handle styling
@@ -127,6 +135,104 @@ export const CreateWorkflow = () => {
     prevFocusModeRef.current = isFocusMode;
   }, [isFocusMode, nodes, edges, setNodes]);
 
+  // Update nodes with error/warning highlighting
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          hasError: validationResult ? validation.hasNodeErrors(node.id) : false,
+          hasWarning: validationResult ? validation.hasNodeWarnings(node.id) : false,
+        },
+      }))
+    );
+  }, [validationResult, validation, setNodes]);
+
+  // Track user edits
+  const onNodesChange = useCallback(
+    (changes: any) => {
+      setLastEditTimestamp(Date.now());
+      reactFlowOnNodesChange(changes);
+    },
+    [reactFlowOnNodesChange]
+  );
+
+  const onEdgesChange = useCallback(
+    (changes: any) => {
+      setLastEditTimestamp(Date.now());
+      reactFlowOnEdgesChange(changes);
+    },
+    [reactFlowOnEdgesChange]
+  );
+
+  const handleWorkflowNameChange = useCallback((name: string) => {
+    setLastEditTimestamp(Date.now());
+    setWorkflowName(name);
+  }, []);
+
+  const handleWorkflowDescriptionChange = useCallback((desc: string) => {
+    setLastEditTimestamp(Date.now());
+    setWorkflowDescription(desc);
+  }, []);
+
+  // Auto-dismiss validation errors when user makes edits (debounced)
+  useEffect(() => {
+    if (!validationResult || lastEditTimestamp === 0) return;
+
+    // Debounce to avoid dismissing too quickly during rapid edits
+    const timer = setTimeout(() => {
+      setValidationResult(null);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [lastEditTimestamp, validationResult]);
+
+  // Navigation handler for error banner
+  const handleNavigateToError = useCallback(
+    (nodeId: string | null) => {
+      if (!nodeId) return;
+
+      // Center view on the error node
+      setTimeout(() => {
+        canvasRef.current?.centerView(nodeId);
+      }, 100);
+
+      // Select the node to open editor
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) {
+        setSelectedNode(node as FlowNode);
+      }
+    },
+    [nodes, setSelectedNode]
+  );
+
+  // Handle banner navigation
+  const handleBannerNext = useCallback(() => {
+    validation.goToNext();
+    if (validation.currentGroup?.nodeId) {
+      handleNavigateToError(validation.currentGroup.nodeId);
+    }
+  }, [validation, handleNavigateToError]);
+
+  const handleBannerPrevious = useCallback(() => {
+    validation.goToPrevious();
+    if (validation.currentGroup?.nodeId) {
+      handleNavigateToError(validation.currentGroup.nodeId);
+    }
+  }, [validation, handleNavigateToError]);
+
+  const handleBannerNavigateToIndex = useCallback(
+    (index: number) => {
+      validation.goToIndex(index);
+      const groups = validation.errorGroups;
+      if (groups[index]?.nodeId) {
+        handleNavigateToError(groups[index].nodeId);
+      }
+    },
+    [validation, handleNavigateToError]
+  );
+
   // Get current node data with defaults - derive from nodes array to stay in sync
   const currentNode = selectedNode
     ? nodes.find((n: { id: string }) => n.id === selectedNode.id)
@@ -158,6 +264,7 @@ export const CreateWorkflow = () => {
   // Update node data helper
   const updateNodeData = useCallback(
     (nodeId: string, updates: Record<string, any>) => {
+      setLastEditTimestamp(Date.now());
       setNodes((nds: CreateWorkflowNode[]) =>
         nds.map((node: CreateWorkflowNode) =>
           node.id === nodeId ? { ...node, data: { ...node.data, ...updates } } : node
@@ -601,6 +708,24 @@ export const CreateWorkflow = () => {
 
   // ==================== EVENT HANDLERS ====================
   const handleSaveDraft = () => {
+    // Run frontend validation with lenient mode (SAVE)
+    const result = validateWorkflow(
+      workflowName,
+      workflowDescription,
+      nodes as CreateWorkflowNode[],
+      edges as CreateWorkflowEdge[],
+      ValidationMode.SAVE
+    );
+
+    setValidationResult(result);
+    validation.reset();
+
+    if (!result.isValid) {
+      console.error('Validation failed:', result.errors);
+      return;
+    }
+
+    // Validation passed - proceed with save
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -617,9 +742,29 @@ export const CreateWorkflow = () => {
       })),
       autoPositioning,
     };
+
+    console.log('✅ Draft saved successfully:', workflowData);
   };
 
   const handlePublishDraft = () => {
+    // Run frontend validation with strict mode (PUBLISH)
+    const result = validateWorkflow(
+      workflowName,
+      workflowDescription,
+      nodes as CreateWorkflowNode[],
+      edges as CreateWorkflowEdge[],
+      ValidationMode.PUBLISH
+    );
+
+    setValidationResult(result);
+    validation.reset();
+
+    if (!result.isValid) {
+      console.error('Validation failed:', result.errors);
+      return;
+    }
+
+    // Validation passed - proceed with publish
     const workflowData = {
       name: workflowName,
       description: workflowDescription,
@@ -636,6 +781,8 @@ export const CreateWorkflow = () => {
       })),
       status: 'published',
     };
+
+    console.log('✅ Workflow published successfully:', workflowData);
   };
 
   const handleNodeDelete = () => {
@@ -835,6 +982,20 @@ export const CreateWorkflow = () => {
 
   return (
     <>
+      {/* Validation Error Banner */}
+      {validation.hasErrors && (
+        <ValidationErrorBanner
+          currentGroup={validation.currentGroup}
+          currentIndex={validation.currentErrorIndex}
+          totalErrors={validation.totalErrors}
+          onNavigateNext={handleBannerNext}
+          onNavigatePrevious={handleBannerPrevious}
+          onNavigateToIndex={handleBannerNavigateToIndex}
+          onDismiss={() => setValidationResult(null)}
+          errorMessage={validation.currentErrorMessage}
+        />
+      )}
+
       <div className='h-screen flex min-h-0 overflow-hidden bg-gray-100'>
         {!isFocusMode && (
           <Sidebar
@@ -848,8 +1009,8 @@ export const CreateWorkflow = () => {
                   ).type
                 : null
             }
-            onWorkflowNameChange={setWorkflowName}
-            onWorkflowDescriptionChange={setWorkflowDescription}
+            onWorkflowNameChange={handleWorkflowNameChange}
+            onWorkflowDescriptionChange={handleWorkflowDescriptionChange}
             onAutoPositioningChange={setAutoPositioning}
             onDragStart={onDragStart}
             onSaveDraft={handleSaveDraft}

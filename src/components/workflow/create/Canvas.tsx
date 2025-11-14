@@ -136,17 +136,14 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
             const isHighlighted =
               highlightedElements.nodeId === node.id ||
               highlightedElements.nodeIds?.includes(node.id);
-            const hasError = errorNodeIds.has(node.id);
+            const hasError = node.data?.hasError || errorNodeIds.has(node.id);
+            const hasWarning = node.data?.hasWarning;
 
             const styleOverrides: any = {
               transition: 'all 0.3s ease',
             };
 
-            if (hasError) {
-              // EVENT nodes: rectangular border, STATUS nodes: circular border
-              styleOverrides.boxShadow = 'none';
-              styleOverrides.border = '4px solid #ef4444';
-            } else if (isHighlighted) {
+            if (!hasError && isHighlighted) {
               styleOverrides.boxShadow =
                 node.type === NODE_TYPES.STATUS
                   ? 'none'
@@ -155,6 +152,11 @@ const FlowCanvas = forwardRef<CanvasRef, CanvasProps>(
 
             return {
               ...node,
+              data: {
+                ...node.data,
+                error: hasError ? 'true' : undefined,
+                warning: hasWarning ? 'true' : undefined,
+              },
               style: {
                 ...node.style,
                 ...styleOverrides,
